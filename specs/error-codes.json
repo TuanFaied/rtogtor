@@ -1,0 +1,174 @@
+{
+  "specVersion": "0.1.0",
+  "description": "Stable RtoGtoR error codes. Codes are never reused or renumbered. Deprecated codes stay in this file with \"deprecated\": true.",
+  "codes": [
+    {
+      "code": "RTG-SPEC-001",
+      "title": "Unsupported specification version",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The document declares a specVersion whose major version this engine does not support.",
+      "remediation": "Upgrade the engine, or write the document against a supported specVersion (see `rtogtor version`)."
+    },
+    {
+      "code": "RTG-MAP-001",
+      "title": "Mapping does not match the schema",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The mapping document is well-formed JSON/YAML but violates specs/mapping.schema.json.",
+      "remediation": "Fix the field reported at the given path. Validate with `rtogtor validate --mapping <file>`."
+    },
+    {
+      "code": "RTG-MAP-002",
+      "title": "Mapping cannot be read or parsed",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The mapping file could not be read, or it is not valid JSON or YAML (including duplicate keys).",
+      "remediation": "Check the file path and syntax. Files ending in .json are parsed as JSON; .yaml and .yml as YAML."
+    },
+    {
+      "code": "RTG-MAP-003",
+      "title": "Duplicate entity name",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "Two entities in the mapping share the same name. Entity names define identities and must be unique.",
+      "remediation": "Rename one of the entities."
+    },
+    {
+      "code": "RTG-MAP-004",
+      "title": "Unknown entity reference",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A relationship refers to an entity name that is not defined in the mapping.",
+      "remediation": "Define the entity, or correct the name in the relationship."
+    },
+    {
+      "code": "RTG-MAP-005",
+      "title": "Key field not mapped",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A field listed in an entity's key is not mapped as one of that entity's properties.",
+      "remediation": "Add a property mapping for the key field, or remove it from the key."
+    },
+    {
+      "code": "RTG-MAP-006",
+      "title": "Key field type not allowed in identity",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A key field has a logical type that cannot be an identity component (for example float64 or json). See specs/identity.md §2.",
+      "remediation": "Choose a different key, or convert the field to a permitted type."
+    },
+    {
+      "code": "RTG-MAP-007",
+      "title": "Foreign key does not match the referenced key",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The number of foreign-key columns differs from the number of key fields of the referenced entity.",
+      "remediation": "List one foreign-key column per key field of the referenced entity, in the same order."
+    },
+    {
+      "code": "RTG-MAP-008",
+      "title": "Duplicate property name",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "Two property mappings of the same entity or relationship produce the same destination property name.",
+      "remediation": "Rename one of the properties."
+    },
+    {
+      "code": "RTG-MAP-009",
+      "title": "Duplicate column mapping",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The same source column is mapped more than once within one entity or relationship.",
+      "remediation": "Remove the duplicate mapping."
+    },
+    {
+      "code": "RTG-MAP-010",
+      "title": "Direction not yet implemented",
+      "severity": "warning",
+      "retryable": false,
+      "meaning": "The mapping is valid, but this engine version cannot yet execute mappings in the declared direction.",
+      "remediation": "Check `docs/roadmap.md` for when the direction is planned."
+    },
+    {
+      "code": "RTG-MAP-011",
+      "title": "Duplicate relationship name",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "Two relationships in the mapping share the same name.",
+      "remediation": "Rename one of the relationships."
+    },
+    {
+      "code": "RTG-MAP-012",
+      "title": "Reserved property name",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A property mapping uses the name of the identity property (default rtg_id), which the engine manages.",
+      "remediation": "Rename the property, or change identity.property."
+    },
+    {
+      "code": "RTG-VAL-001",
+      "title": "Invalid value for logical type",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A value is not a valid encoding of its logical type as defined in specs/values.md.",
+      "remediation": "Correct the value. The message names the type and the reason."
+    },
+    {
+      "code": "RTG-VAL-002",
+      "title": "Unknown or unsupported logical type",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The logical type name is not defined in specs/values.md, or the operation does not support that type.",
+      "remediation": "Use one of the logical types listed in specs/values.md §1."
+    },
+    {
+      "code": "RTG-ID-001",
+      "title": "Null identity component",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A key field is null, so no identity can be derived for the record.",
+      "remediation": "Ensure key fields are NOT NULL in the source, or choose a different key."
+    },
+    {
+      "code": "RTG-ID-002",
+      "title": "Type not permitted in identity",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A key component has a logical type that is not permitted in rtg-id/v1 (specs/identity.md §2).",
+      "remediation": "Use a key made of permitted types."
+    },
+    {
+      "code": "RTG-ID-003",
+      "title": "Empty identity input",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The entity type is empty or invalid UTF-8, or the key has no components.",
+      "remediation": "Declare a non-empty entity name and at least one key field."
+    },
+    {
+      "code": "RTG-PROTO-001",
+      "title": "Unsupported protocol version",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A protocol message declares a protocolVersion whose major version the engine does not support.",
+      "remediation": "Use an SDK version compatible with this engine (see specs/compatibility.md)."
+    },
+    {
+      "code": "RTG-CLI-001",
+      "title": "Invalid command-line usage",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A command was given unknown flags, missing required flags, or invalid flag values.",
+      "remediation": "Run the command with --help."
+    },
+    {
+      "code": "RTG-INTERNAL-001",
+      "title": "Internal error",
+      "severity": "fatal",
+      "retryable": false,
+      "meaning": "An unexpected condition inside the engine. This is a bug.",
+      "remediation": "Please report it at https://github.com/TuanFaied/rtogtor/issues with the command and engine version (no credentials)."
+    }
+  ]
+}

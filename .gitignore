@@ -1,0 +1,43 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+credentials*.json
+
+# Run state and local artifacts
+.rtogtor/
+dist/
+bin/
+coverage.out
+*.test
+
+# Go
+engine/rtogtor
+engine/rtogtor.exe
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+*.tsbuildinfo
+
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+.vs/
+
+# Editors / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db

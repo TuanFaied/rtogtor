@@ -1,0 +1,111 @@
+# RtoGtoR mapping: e-commerce PostgreSQL -> Neo4j
+# Validate with: rtogtor validate --mapping examples/ecommerce/mapping.yaml
+specVersion: "0.1.0"
+name: ecommerce
+description: Customers, products, orders and order lines as a property graph.
+direction: relational-to-graph
+
+source:
+  kind: postgresql
+  schema: public
+destination:
+  kind: neo4j
+
+identity:
+  strategy: hash
+  property: rtg_id
+
+policies:
+  loss: strict
+  allow:
+    - kind: representation
+      type: decimal
+      reason: Neo4j has no exact decimal type; prices are stored as canonical decimal strings.
+
+entities:
+  - name: Customer
+    table: customers
+    labels: [Customer]
+    key: [id]
+    properties:
+      - { column: id,         property: id,        type: int64 }
+      - { column: email,      property: email,     type: string }
+      - { column: full_name,  property: fullName,  type: string }
+      - { column: created_at, property: createdAt, type: timestamptz }
+
+  - name: Product
+    table: products
+    labels: [Product]
+    key: [id]
+    properties:
+      - { column: id,    property: id,    type: int64 }
+      - { column: sku,   property: sku,   type: string }
+      - { column: name,  property: name,  type: string }
+      - { column: price, property: price, type: decimal }
+
+  - name: Order
+    table: orders
+    labels: [Order]
+    key: [id]
+    properties:
+      - { column: id,        property: id,       type: int64 }
+      - { column: status,    property: status,   type: string }
+      - { column: placed_at, property: placedAt, type: timestamptz }
+
+  # Order lines carry business attributes, so they stay entities (nodes)
+  # rather than becoming relationship properties. Composite key.
+  - name: OrderItem
+    table: order_items
+    labels: [OrderItem]
+    key: [order_id, line_no]
+    properties:
+      - { column: order_id,   property: orderId,   type: int64 }
+      - { column: line_no,    property: lineNo,    type: int64 }
+      - { column: quantity,   property: quantity,  type: int64 }
+      - { column: unit_price, property: unitPrice, type: decimal }
+
+relationships:
+  # (Customer)-[:PLACED]->(Order), from orders.customer_id
+  - name: CustomerPlacedOrder
+    type: PLACED
+    foreignKey:
+      entity: Order
+      columns: [customer_id]
+      references: Customer
+      direction: referenced-to-owner
+
+  # (Order)-[:CONTAINS]->(OrderItem), from order_items.order_id
+  - name: OrderContainsItem
+    type: CONTAINS
+    foreignKey:
+      entity: OrderItem
+      columns: [order_id]
+      references: Order
+      direction: referenced-to-owner
+
+  # (OrderItem)-[:OF_PRODUCT]->(Product), from order_items.product_id
+  - name: ItemOfProduct
+    type: OF_PRODUCT
+    foreignKey:
+      entity: OrderItem
+      columns: [product_id]
+      references: Product
+      direction: owner-to-referenced
+
+  # Self-reference: (Customer)-[:REFERRED_BY]->(Customer)
+  - name: CustomerReferredBy
+    type: REFERRED_BY
+    foreignKey:
+      entity: Customer
+      columns: [referred_by]
+      references: Customer
+      direction: owner-to-referenced
+
+  # Self-reference: (Product)-[:VARIANT_OF]->(Product)
+  - name: ProductVariantOf
+    type: VARIANT_OF
+    foreignKey:
+      entity: Product
+      columns: [parent_product_id]
+      references: Product
+      direction: owner-to-referenced

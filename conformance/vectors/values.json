@@ -1,0 +1,134 @@
+{
+  "specVersion": "0.1.0",
+  "description": "Canonical value encoding vectors for scalar types. See specs/values.md. 'input' is a text form; 'canonical' is the canonical text form. Implementations must normalize every valid input to exactly 'canonical' and reject every invalid input with 'errorCode'.",
+  "valid": [
+    { "type": "bool", "input": "true", "canonical": "true" },
+    { "type": "bool", "input": "false", "canonical": "false" },
+
+    { "type": "int64", "input": "0", "canonical": "0" },
+    { "type": "int64", "input": "-0", "canonical": "0" },
+    { "type": "int64", "input": "+007", "canonical": "7" },
+    { "type": "int64", "input": "-42", "canonical": "-42" },
+    { "type": "int64", "input": "9223372036854775807", "canonical": "9223372036854775807" },
+    { "type": "int64", "input": "-9223372036854775808", "canonical": "-9223372036854775808" },
+
+    { "type": "decimal", "input": "1.50", "canonical": "1.5" },
+    { "type": "decimal", "input": "100.00", "canonical": "100" },
+    { "type": "decimal", "input": "0012.500", "canonical": "12.5" },
+    { "type": "decimal", "input": "-0.0", "canonical": "0" },
+    { "type": "decimal", "input": "+3.14", "canonical": "3.14" },
+    { "type": "decimal", "input": "-0.001", "canonical": "-0.001" },
+    { "type": "decimal", "input": "123456789012345678901234567890.123456789", "canonical": "123456789012345678901234567890.123456789" },
+    { "type": "decimal", "input": "NaN", "canonical": "NaN" },
+    { "type": "decimal", "input": "Infinity", "canonical": "Infinity" },
+    { "type": "decimal", "input": "-Infinity", "canonical": "-Infinity" },
+
+    { "type": "float64", "input": "1.5", "canonical": "1.5" },
+    { "type": "float64", "input": "1.0", "canonical": "1" },
+    { "type": "float64", "input": "100", "canonical": "100" },
+    { "type": "float64", "input": "0.1", "canonical": "0.1" },
+    { "type": "float64", "input": "1e21", "canonical": "1e+21" },
+    { "type": "float64", "input": "123456789012345680000", "canonical": "123456789012345680000" },
+    { "type": "float64", "input": "0.000001", "canonical": "0.000001" },
+    { "type": "float64", "input": "1e-7", "canonical": "1e-7" },
+    { "type": "float64", "input": "-2.5E-10", "canonical": "-2.5e-10" },
+    { "type": "float64", "input": "5e-324", "canonical": "5e-324" },
+    { "type": "float64", "input": "1.7976931348623157e308", "canonical": "1.7976931348623157e+308" },
+    { "type": "float64", "input": "-0", "canonical": "-0" },
+    { "type": "float64", "input": "-0.0", "canonical": "-0" },
+    { "type": "float64", "input": "NaN", "canonical": "NaN" },
+    { "type": "float64", "input": "Infinity", "canonical": "Infinity" },
+    { "type": "float64", "input": "-Infinity", "canonical": "-Infinity" },
+
+    { "type": "string", "input": "", "canonical": "" },
+    { "type": "string", "input": "Café ☕", "canonical": "Café ☕" },
+    { "type": "string", "input": "Café", "canonical": "Café" },
+
+    { "type": "uuid", "input": "6F9619FF-8B86-D011-B42D-00C04FC964FF", "canonical": "6f9619ff-8b86-d011-b42d-00c04fc964ff" },
+    { "type": "uuid", "input": "00000000-0000-0000-0000-000000000000", "canonical": "00000000-0000-0000-0000-000000000000" },
+
+    { "type": "date", "input": "2026-10-21", "canonical": "2026-10-21" },
+    { "type": "date", "input": "2024-02-29", "canonical": "2024-02-29" },
+    { "type": "date", "input": "0001-01-01", "canonical": "0001-01-01" },
+
+    { "type": "time", "input": "14:30:00", "canonical": "14:30:00" },
+    { "type": "time", "input": "14:30:00.500000", "canonical": "14:30:00.5" },
+    { "type": "time", "input": "23:59:59.999999999", "canonical": "23:59:59.999999999" },
+
+    { "type": "timetz", "input": "14:30:00+02:00", "canonical": "14:30:00+02:00" },
+    { "type": "timetz", "input": "14:30:00+00:00", "canonical": "14:30:00Z" },
+    { "type": "timetz", "input": "14:30:00.120-05:30", "canonical": "14:30:00.12-05:30" },
+
+    { "type": "timestamp", "input": "2026-10-21T14:30:00", "canonical": "2026-10-21T14:30:00" },
+    { "type": "timestamp", "input": "2026-10-21T14:30:00.000000", "canonical": "2026-10-21T14:30:00" },
+    { "type": "timestamp", "input": "2026-10-21T14:30:00.123456789", "canonical": "2026-10-21T14:30:00.123456789" },
+
+    { "type": "timestamptz", "input": "2026-10-21T14:30:00Z", "canonical": "2026-10-21T14:30:00Z" },
+    { "type": "timestamptz", "input": "2026-10-21T14:30:00.120+02:00", "canonical": "2026-10-21T12:30:00.12Z" },
+    { "type": "timestamptz", "input": "2026-01-01T00:30:00+01:00", "canonical": "2025-12-31T23:30:00Z" },
+    { "type": "timestamptz", "input": "2026-10-21T14:30:00-00:00", "canonical": "2026-10-21T14:30:00Z" },
+
+    { "type": "duration", "input": "P14M3DT3600.5S", "canonical": "P14M3DT3600.5S" },
+    { "type": "duration", "input": "P0M0DT0S", "canonical": "P0M0DT0S" },
+    { "type": "duration", "input": "P-0M-1DT0S", "canonical": "P0M-1DT0S" },
+    { "type": "duration", "input": "P0M0DT-0.250S", "canonical": "P0M0DT-0.25S" },
+    { "type": "duration", "input": "P012M0DT10.000S", "canonical": "P12M0DT10S" },
+
+    { "type": "bytes", "input": "", "canonical": "" },
+    { "type": "bytes", "input": "3q2+7w==", "canonical": "3q2+7w==" },
+    { "type": "bytes", "input": "AAEC", "canonical": "AAEC" }
+  ],
+  "invalid": [
+    { "type": "bool", "input": "TRUE", "errorCode": "RTG-VAL-001" },
+    { "type": "bool", "input": "1", "errorCode": "RTG-VAL-001" },
+
+    { "type": "int64", "input": "9223372036854775808", "errorCode": "RTG-VAL-001" },
+    { "type": "int64", "input": "1.0", "errorCode": "RTG-VAL-001" },
+    { "type": "int64", "input": "", "errorCode": "RTG-VAL-001" },
+    { "type": "int64", "input": " 1", "errorCode": "RTG-VAL-001" },
+    { "type": "int64", "input": "0x10", "errorCode": "RTG-VAL-001" },
+
+    { "type": "decimal", "input": "1e3", "errorCode": "RTG-VAL-001" },
+    { "type": "decimal", "input": ".5", "errorCode": "RTG-VAL-001" },
+    { "type": "decimal", "input": "5.", "errorCode": "RTG-VAL-001" },
+    { "type": "decimal", "input": "1,5", "errorCode": "RTG-VAL-001" },
+    { "type": "decimal", "input": "", "errorCode": "RTG-VAL-001" },
+    { "type": "decimal", "input": "nan", "errorCode": "RTG-VAL-001" },
+
+    { "type": "float64", "input": "1e400", "errorCode": "RTG-VAL-001" },
+    { "type": "float64", "input": "inf", "errorCode": "RTG-VAL-001" },
+    { "type": "float64", "input": "0x1p3", "errorCode": "RTG-VAL-001" },
+    { "type": "float64", "input": "1_000", "errorCode": "RTG-VAL-001" },
+
+    { "type": "uuid", "input": "6f9619ff8b86d011b42d00c04fc964ff", "errorCode": "RTG-VAL-001" },
+    { "type": "uuid", "input": "{6f9619ff-8b86-d011-b42d-00c04fc964ff}", "errorCode": "RTG-VAL-001" },
+    { "type": "uuid", "input": "6f9619ff-8b86-d011-b42d-00c04fc964fg", "errorCode": "RTG-VAL-001" },
+
+    { "type": "date", "input": "2026-02-30", "errorCode": "RTG-VAL-001" },
+    { "type": "date", "input": "2023-02-29", "errorCode": "RTG-VAL-001" },
+    { "type": "date", "input": "0000-01-01", "errorCode": "RTG-VAL-001" },
+    { "type": "date", "input": "2026-1-5", "errorCode": "RTG-VAL-001" },
+
+    { "type": "time", "input": "24:00:00", "errorCode": "RTG-VAL-001" },
+    { "type": "time", "input": "14:30", "errorCode": "RTG-VAL-001" },
+    { "type": "time", "input": "14:30:00.1234567890", "errorCode": "RTG-VAL-001" },
+
+    { "type": "timetz", "input": "14:30:00", "errorCode": "RTG-VAL-001" },
+
+    { "type": "timestamp", "input": "2026-10-21 14:30:00", "errorCode": "RTG-VAL-001" },
+    { "type": "timestamp", "input": "2026-10-21T14:30:00Z", "errorCode": "RTG-VAL-001" },
+    { "type": "timestamp", "input": "2026-10-21T14:30:00.1234567890", "errorCode": "RTG-VAL-001" },
+
+    { "type": "timestamptz", "input": "2026-10-21T14:30:00", "errorCode": "RTG-VAL-001" },
+    { "type": "timestamptz", "input": "2026-10-21T14:30:00+0200", "errorCode": "RTG-VAL-001" },
+
+    { "type": "duration", "input": "P1Y", "errorCode": "RTG-VAL-001" },
+    { "type": "duration", "input": "PT1H", "errorCode": "RTG-VAL-001" },
+    { "type": "duration", "input": "P1M1DT1.1234567890S", "errorCode": "RTG-VAL-001" },
+
+    { "type": "bytes", "input": "3q2+7w=", "errorCode": "RTG-VAL-001" },
+    { "type": "bytes", "input": "3q2-7w==", "errorCode": "RTG-VAL-001" },
+    { "type": "bytes", "input": "3q2+7x==", "errorCode": "RTG-VAL-001" },
+    { "type": "bytes", "input": "3q2+\n7w==", "errorCode": "RTG-VAL-001" }
+  ]
+}

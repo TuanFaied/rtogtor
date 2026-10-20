@@ -1,0 +1,499 @@
+{
+  "specVersion": "0.1.0",
+  "algorithm": "rtg-id/v1",
+  "description": "Identity derivation vectors. See specs/identity.md. Every SDK and the engine must reproduce serializationHex and rtgId exactly.",
+  "vectors": [
+    {
+      "name": "int64-single",
+      "description": "Single integer key",
+      "entityType": "Customer",
+      "key": [
+        {
+          "type": "int64",
+          "value": "42"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "int64",
+          "value": "42"
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000008437573746f6d6572000000016936343a000000023432",
+      "rtgId": "3260a403a6d59fd3b308276126826219271f2ab48ba6a540b253a718ed6528ff"
+    },
+    {
+      "name": "int64-normalized",
+      "description": "Non-canonical integer input normalizes; same rtgId as int64-single",
+      "entityType": "Customer",
+      "key": [
+        {
+          "type": "int64",
+          "value": "+0042"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "int64",
+          "value": "42"
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000008437573746f6d6572000000016936343a000000023432",
+      "rtgId": "3260a403a6d59fd3b308276126826219271f2ab48ba6a540b253a718ed6528ff"
+    },
+    {
+      "name": "int64-min",
+      "description": "Minimum int64",
+      "entityType": "Customer",
+      "key": [
+        {
+          "type": "int64",
+          "value": "-9223372036854775808"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "int64",
+          "value": "-9223372036854775808"
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000008437573746f6d6572000000016936343a000000142d39323233333732303336383534373735383038",
+      "rtgId": "8d6057da67d5764b1d7483b1a30799d6a38f33ec92e3af158b568fd284fe171a"
+    },
+    {
+      "name": "string-vs-int64",
+      "description": "Same text as int64-single but a different type, so a different rtgId",
+      "entityType": "Customer",
+      "key": [
+        {
+          "type": "string",
+          "value": "42"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "string",
+          "value": "42"
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000008437573746f6d6572000000017374723a000000023432",
+      "rtgId": "974a2c422cdb709c2e8681c9433c01a954f5021bbfe711edb596ea76fca0b1a4"
+    },
+    {
+      "name": "composite-a",
+      "description": "Composite key (order_id=1001, line_no=3)",
+      "entityType": "OrderItem",
+      "key": [
+        {
+          "type": "int64",
+          "value": "1001"
+        },
+        {
+          "type": "int64",
+          "value": "3"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "int64",
+          "value": "1001"
+        },
+        {
+          "type": "int64",
+          "value": "3"
+        }
+      ],
+      "serializationHex": "7274672d69642f763100000000094f726465724974656d000000026936343a00000004313030316936343a0000000133",
+      "rtgId": "cdb11d1fed94472fc66fff69484a6cbdbc8cea0a7c9849edeebfc6303fedca7e"
+    },
+    {
+      "name": "composite-b",
+      "description": "Same concatenated digits as composite-a; length prefixes keep them distinct",
+      "entityType": "OrderItem",
+      "key": [
+        {
+          "type": "int64",
+          "value": "100"
+        },
+        {
+          "type": "int64",
+          "value": "13"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "int64",
+          "value": "100"
+        },
+        {
+          "type": "int64",
+          "value": "13"
+        }
+      ],
+      "serializationHex": "7274672d69642f763100000000094f726465724974656d000000026936343a000000033130306936343a000000023133",
+      "rtgId": "12e20856ab97849cf9eb82b03138d839b1e7d9ac0a52f85ea124b4a36e512105"
+    },
+    {
+      "name": "string-ascii",
+      "description": "ASCII string",
+      "entityType": "Product",
+      "key": [
+        {
+          "type": "string",
+          "value": "SKU-001"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "string",
+          "value": "SKU-001"
+        }
+      ],
+      "serializationHex": "7274672d69642f7631000000000750726f64756374000000017374723a00000007534b552d303031",
+      "rtgId": "0a94c9356e934c683e06a9ead4aad793a590ef0275701b4274e532c91bbeeb62"
+    },
+    {
+      "name": "string-unicode",
+      "description": "Multi-byte UTF-8; length prefix counts bytes, not characters",
+      "entityType": "Product",
+      "key": [
+        {
+          "type": "string",
+          "value": "Café ☕"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "string",
+          "value": "Café ☕"
+        }
+      ],
+      "serializationHex": "7274672d69642f7631000000000750726f64756374000000017374723a00000009436166c3a920e29895",
+      "rtgId": "31c86eef1bb93ff092948572917dfb9fdcb4479abb02646b8232133149d14d46"
+    },
+    {
+      "name": "string-empty",
+      "description": "Empty string is a valid, non-null key value",
+      "entityType": "Product",
+      "key": [
+        {
+          "type": "string",
+          "value": ""
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "string",
+          "value": ""
+        }
+      ],
+      "serializationHex": "7274672d69642f7631000000000750726f64756374000000017374723a00000000",
+      "rtgId": "630eab9b1fd9d2b416fd2fe3924b06290fd97f77c57d4190801449e58dd3507f"
+    },
+    {
+      "name": "uuid-uppercase",
+      "description": "UUID input lowercased",
+      "entityType": "Account",
+      "key": [
+        {
+          "type": "uuid",
+          "value": "6F9619FF-8B86-D011-B42D-00C04FC964FF"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "uuid",
+          "value": "6f9619ff-8b86-d011-b42d-00c04fc964ff"
+        }
+      ],
+      "serializationHex": "7274672d69642f763100000000074163636f756e7400000001757569643a0000002436663936313966662d386238362d643031312d623432642d303063303466633936346666",
+      "rtgId": "d3b7a04a9f6047e4136d80534f87a72257ebe0844586a5a4b6c10741e427029e"
+    },
+    {
+      "name": "decimal-trailing-zeros",
+      "description": "Leading and trailing zeros removed",
+      "entityType": "Price",
+      "key": [
+        {
+          "type": "decimal",
+          "value": "0012.500"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "decimal",
+          "value": "12.5"
+        }
+      ],
+      "serializationHex": "7274672d69642f763100000000055072696365000000016465633a0000000431322e35",
+      "rtgId": "15d9d603a73ffd1a007d08420667aaabb408bfe9402797f8d90fc1aa522eef21"
+    },
+    {
+      "name": "decimal-negative-zero",
+      "description": "Negative zero normalizes to 0",
+      "entityType": "Price",
+      "key": [
+        {
+          "type": "decimal",
+          "value": "-0.000"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "decimal",
+          "value": "0"
+        }
+      ],
+      "serializationHex": "7274672d69642f763100000000055072696365000000016465633a0000000130",
+      "rtgId": "2c245db3d69409f2b3c73bdb16241c0e32683a26e4298ecf614952da0f4151c7"
+    },
+    {
+      "name": "timestamptz-offset",
+      "description": "Converted to UTC, trailing fractional zeros removed",
+      "entityType": "Event",
+      "key": [
+        {
+          "type": "timestamptz",
+          "value": "2026-10-21T14:30:00.120+02:00"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "timestamptz",
+          "value": "2026-10-21T12:30:00.12Z"
+        }
+      ],
+      "serializationHex": "7274672d69642f763100000000054576656e74000000017473747a3a00000017323032362d31302d32315431323a33303a30302e31325a",
+      "rtgId": "a4b1d912482b2c4b7bc60cf0cc7acac3cfcec15663223862f9d1409a6a0ea231"
+    },
+    {
+      "name": "timestamp-local",
+      "description": "Zone-less timestamp is never shifted",
+      "entityType": "Event",
+      "key": [
+        {
+          "type": "timestamp",
+          "value": "2026-10-21T14:30:00.000000"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "timestamp",
+          "value": "2026-10-21T14:30:00"
+        }
+      ],
+      "serializationHex": "7274672d69642f763100000000054576656e740000000174733a00000013323032362d31302d32315431343a33303a3030",
+      "rtgId": "be66313ae3394f595d7b9f3c51ead9727a0037394baa8bb6a3fbfd96236b4ea2"
+    },
+    {
+      "name": "date",
+      "description": "Date",
+      "entityType": "Holiday",
+      "key": [
+        {
+          "type": "date",
+          "value": "2026-02-28"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "date",
+          "value": "2026-02-28"
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000007486f6c6964617900000001646174653a0000000a323032362d30322d3238",
+      "rtgId": "e4da0654ed9ef170218db5503b67540119180b96b8a5f90d341191757fb262f9"
+    },
+    {
+      "name": "bool",
+      "description": "Boolean",
+      "entityType": "Flag",
+      "key": [
+        {
+          "type": "bool",
+          "value": "true"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "bool",
+          "value": "true"
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000004466c616700000001626f6f6c3a0000000474727565",
+      "rtgId": "90ece2a75e4d7da7a141af527f049d942d526883332b0ed1741ea2a26a8be835"
+    },
+    {
+      "name": "bytes",
+      "description": "Bytes as padded standard Base64",
+      "entityType": "Blob",
+      "key": [
+        {
+          "type": "bytes",
+          "value": "3q2+7w=="
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "bytes",
+          "value": "3q2+7w=="
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000004426c6f620000000162797465733a000000083371322b37773d3d",
+      "rtgId": "4dd7f4cc6d4b1fffc8c1f105e6a79ec77b43775f918c34f2282dad220078fea1"
+    },
+    {
+      "name": "composite-mixed",
+      "description": "Composite key of mixed types",
+      "entityType": "Region",
+      "key": [
+        {
+          "type": "string",
+          "value": "EU"
+        },
+        {
+          "type": "date",
+          "value": "2026-01-01"
+        },
+        {
+          "type": "int64",
+          "value": "7"
+        }
+      ],
+      "canonicalKey": [
+        {
+          "type": "string",
+          "value": "EU"
+        },
+        {
+          "type": "date",
+          "value": "2026-01-01"
+        },
+        {
+          "type": "int64",
+          "value": "7"
+        }
+      ],
+      "serializationHex": "7274672d69642f76310000000006526567696f6e000000037374723a000000024555646174653a0000000a323032362d30312d30316936343a0000000137",
+      "rtgId": "c0f086cc498fde6d64f21de96f279663937094983aa18d8f09d09fd52cce62f1"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "empty-key",
+      "entityType": "Customer",
+      "key": [],
+      "errorCode": "RTG-ID-003"
+    },
+    {
+      "name": "empty-entity-type",
+      "entityType": "",
+      "key": [
+        {
+          "type": "int64",
+          "value": "1"
+        }
+      ],
+      "errorCode": "RTG-ID-003"
+    },
+    {
+      "name": "null-component",
+      "entityType": "Customer",
+      "key": [
+        {
+          "type": "int64",
+          "value": null
+        }
+      ],
+      "errorCode": "RTG-ID-001"
+    },
+    {
+      "name": "float-component",
+      "entityType": "Measurement",
+      "key": [
+        {
+          "type": "float64",
+          "value": "1.5"
+        }
+      ],
+      "errorCode": "RTG-ID-002"
+    },
+    {
+      "name": "json-component",
+      "entityType": "Doc",
+      "key": [
+        {
+          "type": "json",
+          "value": "{}"
+        }
+      ],
+      "errorCode": "RTG-ID-002"
+    },
+    {
+      "name": "int64-overflow",
+      "entityType": "Customer",
+      "key": [
+        {
+          "type": "int64",
+          "value": "9223372036854775808"
+        }
+      ],
+      "errorCode": "RTG-VAL-001"
+    },
+    {
+      "name": "decimal-exponent",
+      "entityType": "Price",
+      "key": [
+        {
+          "type": "decimal",
+          "value": "1e3"
+        }
+      ],
+      "errorCode": "RTG-VAL-001"
+    },
+    {
+      "name": "uuid-malformed",
+      "entityType": "Account",
+      "key": [
+        {
+          "type": "uuid",
+          "value": "6f9619ff8b86d011b42d00c04fc964ff"
+        }
+      ],
+      "errorCode": "RTG-VAL-001"
+    },
+    {
+      "name": "timestamptz-missing-offset",
+      "entityType": "Event",
+      "key": [
+        {
+          "type": "timestamptz",
+          "value": "2026-10-21T14:30:00"
+        }
+      ],
+      "errorCode": "RTG-VAL-001"
+    },
+    {
+      "name": "date-impossible",
+      "entityType": "Holiday",
+      "key": [
+        {
+          "type": "date",
+          "value": "2026-02-30"
+        }
+      ],
+      "errorCode": "RTG-VAL-001"
+    },
+    {
+      "name": "bytes-bad-padding",
+      "entityType": "Blob",
+      "key": [
+        {
+          "type": "bytes",
+          "value": "3q2+7w="
+        }
+      ],
+      "errorCode": "RTG-VAL-001"
+    }
+  ]
+}
