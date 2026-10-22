@@ -3,16 +3,17 @@
 Each milestone leaves the project runnable. A language SDK is announced as
 supported only after it passes the full conformance suite.
 
-## Milestone 1 — Foundation *(in progress)*
+## Milestone 1 — Foundation *(complete pending first green CI run)*
 
 | Step | Status |
 |---|---|
 | 1. Repository, license, community files | ✅ Done |
 | 2. Specification v0.1 drafts: values, identity + vectors, error codes, mapping / schema-metadata / IR schemas; ADRs 0001–0003 | ✅ Done (draft) |
 | 3. Go engine skeleton: canonical values, `rtg_id`, mapping validation, adapter interfaces, CLI `version` / `validate` | ✅ Done |
-| 4. `docker-compose.yml` with PostgreSQL and Neo4j; e-commerce fixture loading | ⏳ Next |
-| 5. PostgreSQL schema inspection (`rtogtor inspect`) + integration tests | ⏳ |
-| 6. Codegen pipeline (schemas → Go/Python/TS/C# types) and CI workflows | ⏳ |
+| 4. `docker-compose.yml` with PostgreSQL and Neo4j; e-commerce fixture loading | ✅ Done |
+| 5. PostgreSQL schema inspection (`rtogtor inspect`) + integration tests | ✅ Done |
+| 6. CI workflows (test, lint, vulnerabilities, integration, cross-compile) | ✅ Done |
+| 6b. Codegen pipeline | ➡️ Moved to Milestone 3 ([ADR-0004](adr/0004-defer-codegen-to-first-sdk.md)) |
 
 **Done when:** `rtogtor inspect` prints valid metadata for the e-commerce
 database, the identity and value vectors pass, and CI is green.
@@ -25,6 +26,7 @@ reports, bounded-memory test. Adds `plan`, `report` and `run-state` schemas.
 
 ## Milestone 3 — Engine protocol + C# SDK
 
+Codegen pipeline (schemas → types, with a CI drift check; see ADR-0004),
 JSON-lines protocol v1 (`protocol.schema.json`), NuGet packaging with bundled
 binaries, C# SDK passing all conformance cases.
 

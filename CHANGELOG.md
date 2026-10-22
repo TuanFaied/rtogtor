@@ -19,3 +19,17 @@ grouped by component.
 - Mapping loading (JSON/YAML) with schema and semantic validation
 - CLI commands `version` and `validate`
 - Relational and graph adapter interfaces (unstable)
+- PostgreSQL adapter: schema inspection from pg_catalog in a read-only
+  snapshot (types, precision, enums, domains, arrays, keys, foreign keys)
+- CLI command `inspect` (connection URL from an environment variable only;
+  credentials redacted from every error)
+
+### Specification 0.1.0 (draft), continued
+
+- Error codes RTG-SCHEMA-001…003, RTG-CONN-001…002, RTG-PG-001
+
+### Repository
+
+- `docker-compose.yml` with PostgreSQL 17 and Neo4j 5 (localhost-only ports)
+- CI workflow for the engine; Dependabot for Go modules and GitHub Actions
+- Development guide

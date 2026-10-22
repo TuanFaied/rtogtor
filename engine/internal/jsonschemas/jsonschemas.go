@@ -4,6 +4,7 @@ package jsonschemas
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -78,8 +79,8 @@ func Validate(schemaFile string, instance any) ([]Violation, error) {
 	if err == nil {
 		return nil, nil
 	}
-	ve, ok := err.(*jsonschema.ValidationError)
-	if !ok {
+	var ve *jsonschema.ValidationError
+	if !errors.As(err, &ve) {
 		return nil, err
 	}
 	return flatten(ve), nil

@@ -55,7 +55,7 @@ func LoadFile(path string) (*Mapping, rtgerr.List) {
 	if err != nil {
 		return nil, rtgerr.List{rtgerr.New(rtgerr.MapParse, "cannot open mapping file: %v", err)}
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }() // read-only; close errors cannot lose data
 	data, err := io.ReadAll(io.LimitReader(f, MaxFileSize+1))
 	if err != nil {
 		return nil, rtgerr.List{rtgerr.New(rtgerr.MapParse, "cannot read mapping file: %v", err)}

@@ -35,13 +35,15 @@ Each code defines:
 | `MAP` | Mapping loading and validation |
 | `VAL` | Value encoding (`values.md`) |
 | `ID` | Identity derivation (`identity.md`) |
+| `SCHEMA` | Schema inspection |
+| `CONN` | Connections |
+| `PG` | PostgreSQL adapter |
 | `PROTO` | Engine ↔ SDK protocol |
 | `CLI` | Command-line usage |
 | `INTERNAL` | Engine bugs |
 
-Areas reserved for later milestones: `SCHEMA` (inspection), `PLAN`, `EXEC`,
-`VERIFY`, `RUN` (run state), `CONN` (connections), `PG` (PostgreSQL adapter),
-`NEO` (Neo4j adapter).
+Areas reserved for later milestones: `PLAN`, `EXEC`, `VERIFY`, `RUN` (run
+state), `NEO` (Neo4j adapter).
 
 ## Codes in v0.1
 
@@ -65,6 +67,12 @@ Areas reserved for later milestones: `SCHEMA` (inspection), `PLAN`, `EXEC`,
 | `RTG-ID-001` | error | no | Null identity component |
 | `RTG-ID-002` | error | no | Type not permitted in identity |
 | `RTG-ID-003` | error | no | Empty identity input |
+| `RTG-SCHEMA-001` | warning | no | Unsupported column type |
+| `RTG-SCHEMA-002` | warning | no | Table has no primary key |
+| `RTG-SCHEMA-003` | error | no | Schema not found |
+| `RTG-CONN-001` | error | yes | Cannot connect to the database |
+| `RTG-CONN-002` | error | no | Connection settings missing or invalid |
+| `RTG-PG-001` | error | no | PostgreSQL query failed |
 | `RTG-PROTO-001` | error | no | Unsupported protocol version |
 | `RTG-CLI-001` | error | no | Invalid command-line usage |
 | `RTG-INTERNAL-001` | fatal | no | Internal error |

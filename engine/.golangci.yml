@@ -1,0 +1,29 @@
+version: "2"
+
+linters:
+  default: standard # errcheck, govet, ineffassign, staticcheck, unused
+  enable:
+    - errorlint   # correct error wrapping and comparison
+    - gosec       # security checks
+    - misspell
+    - unconvert
+  settings:
+    errcheck:
+      # Writes to the terminal: there is nothing useful to do on failure.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+    gosec:
+      excludes:
+        # Reading the user-supplied mapping file is the point of LoadFile.
+        - G304
+  exclusions:
+    rules:
+      # Tests may ignore errors from cleanup and build throwaway SQL.
+      - path: _test\.go
+        linters: [errcheck, gosec]
+
+formatters:
+  enable:
+    - gofmt

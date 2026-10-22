@@ -17,6 +17,9 @@ gofmt -l .
 ./bin/rtogtor validate --mapping ../examples/ecommerce/mapping.yaml
 ```
 
+Integration tests need a disposable PostgreSQL; see
+[docs/development.md](../docs/development.md).
+
 After editing any `specs/*.json` file:
 
 ```bash
@@ -34,6 +37,7 @@ go generate ./...
 | `mapping` | Mapping loading (JSON/YAML) and validation |
 | `schemameta` | Inspected schema metadata document |
 | `adapters/relational`, `adapters/graph` | Adapter interfaces (unstable) |
+| `adapters/relational/postgresql` | PostgreSQL adapter (inspection) |
 | `cmd/rtogtor`, `internal/cli` | The CLI |
 
 ## Using it from Go

@@ -34,7 +34,8 @@ func main() {
 		}
 	}
 
-	if err := os.MkdirAll(dstDir, 0o755); err != nil {
+	// Checked-in source files: world-readable like the rest of the repository.
+	if err := os.MkdirAll(dstDir, 0o755); err != nil { //nolint:gosec // see above
 		fail(err)
 	}
 	for _, src := range sources {
@@ -43,7 +44,7 @@ func main() {
 			fail(err)
 		}
 		name := filepath.Base(src)
-		if err := os.WriteFile(filepath.Join(dstDir, name), b, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(dstDir, name), b, 0o644); err != nil { //nolint:gosec // see above
 			fail(err)
 		}
 		fmt.Printf("copied specs/%s\n", name)

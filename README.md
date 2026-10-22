@@ -30,9 +30,9 @@ databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned f
 | Canonical value encoding (Go engine) | ✅ Implemented, tested against shared vectors |
 | `rtg_id` identity derivation (Go engine) | ✅ Implemented, tested against shared vectors |
 | Mapping loading + validation (JSON/YAML) | ✅ Implemented (schema + semantic checks) |
-| CLI: `rtogtor version`, `rtogtor validate` | ✅ Implemented |
+| CLI: `rtogtor version`, `rtogtor validate`, `rtogtor inspect` | ✅ Implemented |
 | Adapter interfaces (relational, graph) | 🟡 Defined, unstable |
-| PostgreSQL schema inspection (`rtogtor inspect`) | ⏳ Planned (Milestone 1) |
+| PostgreSQL schema inspection (`rtogtor inspect`) | ✅ Implemented, integration-tested |
 | PostgreSQL → Neo4j migration | ⏳ Planned (Milestone 2) |
 | Neo4j → PostgreSQL migration | ⏳ Planned (Milestone 5) |
 | Python / TypeScript / C# SDKs | ⏳ Planned (Milestones 3–4) |
@@ -64,6 +64,7 @@ go build -o bin/rtogtor ./cmd/rtogtor
 ## Documentation
 
 - [Project specification](docs/specification.md)
+- [Development guide](docs/development.md) — local databases, tests, CI
 - [Architecture decision records](docs/adr/)
 - [Roadmap](docs/roadmap.md)
 - [Specification index](specs/README.md)

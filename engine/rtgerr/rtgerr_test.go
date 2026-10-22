@@ -17,6 +17,8 @@ var allConstants = []Code{
 	MapReservedProperty,
 	ValInvalid, ValUnsupportedType,
 	IDNullComponent, IDTypeNotPermitted, IDEmptyInput,
+	SchemaUnsupportedType, SchemaNoPrimaryKey, SchemaNotFound,
+	ConnFailed, ConnConfig, PGQuery,
 	ProtoUnsupportedMajor, CLIUsage, Internal,
 }
 

@@ -100,3 +100,25 @@ func TestUsageErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestInspectConnectionSettings(t *testing.T) {
+	t.Setenv("RTG_TEST_EMPTY_URL", "")
+	t.Setenv("RTG_TEST_MYSQL_URL", "mysql://user:Secret123@localhost/db")
+	cases := map[string]string{
+		"RTG_TEST_UNSET_URL": "is not set or is empty",
+		"RTG_TEST_EMPTY_URL": "is not set or is empty",
+		"RTG_TEST_MYSQL_URL": "must hold a postgres://",
+	}
+	for env, want := range cases {
+		code, _, errOut := run("inspect", "--source-env", env)
+		if code != ExitFailure || !strings.Contains(errOut, "RTG-CONN-002") || !strings.Contains(errOut, want) {
+			t.Errorf("%s: exit %d, stderr %q", env, code, errOut)
+		}
+		if strings.Contains(errOut, "Secret123") {
+			t.Errorf("%s: stderr leaks the URL: %q", env, errOut)
+		}
+	}
+	if code, _, _ := run("inspect"); code != ExitUsage {
+		t.Errorf("missing --source-env: exit %d, want %d", code, ExitUsage)
+	}
+}

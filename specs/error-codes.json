@@ -147,6 +147,54 @@
       "remediation": "Declare a non-empty entity name and at least one key field."
     },
     {
+      "code": "RTG-SCHEMA-001",
+      "title": "Unsupported column type",
+      "severity": "warning",
+      "retryable": false,
+      "meaning": "A column's database type has no logical type in this specification version. Inspection reports it with a null logical type; mappings cannot use the column.",
+      "remediation": "Leave the column unmapped, or convert it in the source (for example with a view) to a supported type. See specs/values.md §7."
+    },
+    {
+      "code": "RTG-SCHEMA-002",
+      "title": "Table has no primary key",
+      "severity": "warning",
+      "retryable": false,
+      "meaning": "The table has no primary key, so it has no stable identity and cannot be read resumably. Strict mappings cannot use it as an entity.",
+      "remediation": "Add a primary key, or declare a unique NOT NULL key in the mapping when that is supported."
+    },
+    {
+      "code": "RTG-SCHEMA-003",
+      "title": "Schema not found",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A requested database schema (namespace) does not exist or is not visible to the connecting user.",
+      "remediation": "Check the schema name (names are case-sensitive) and the user's privileges."
+    },
+    {
+      "code": "RTG-CONN-001",
+      "title": "Cannot connect to the database",
+      "severity": "error",
+      "retryable": true,
+      "meaning": "The engine could not open a connection: the server is unreachable, refused the connection, or rejected the credentials.",
+      "remediation": "Check that the server is running and reachable and that the credentials are correct. Connection details are never printed."
+    },
+    {
+      "code": "RTG-CONN-002",
+      "title": "Connection settings missing or invalid",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The environment variable that should hold the connection URL is not set, is empty, or does not contain a valid URL.",
+      "remediation": "Set the variable named by --source-env (for example SOURCE_URL) to a URL such as postgres://user:password@host:5432/dbname."
+    },
+    {
+      "code": "RTG-PG-001",
+      "title": "PostgreSQL query failed",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A query issued by the PostgreSQL adapter failed. The message includes the SQLSTATE when the server provided one.",
+      "remediation": "Check the connecting user's privileges on the catalog and the inspected schemas. If the failure persists, report it with the SQLSTATE."
+    },
+    {
       "code": "RTG-PROTO-001",
       "title": "Unsupported protocol version",
       "severity": "error",

@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -73,8 +74,32 @@ arrive in later milestones (see docs/roadmap.md).`,
 		},
 	}
 	root.PersistentFlags().StringVar(&opts.format, "format", "text", `output format: "text" or "json"`)
-	root.AddCommand(newVersionCmd(opts), newValidateCmd(opts))
+	root.AddCommand(newVersionCmd(opts), newValidateCmd(opts), newInspectCmd(opts))
 	return root
+}
+
+// reportError prints an engine error and ends the command with ExitFailure.
+func reportError(cmd *cobra.Command, opts *options, err error) error {
+	var e *rtgerr.Error
+	if !errors.As(err, &e) {
+		switch {
+		case errors.Is(err, context.Canceled):
+			e = rtgerr.New(rtgerr.Internal, "cancelled")
+		case errors.Is(err, context.DeadlineExceeded):
+			e = rtgerr.New(rtgerr.ConnFailed, "timed out; raise --timeout or check that the server is reachable")
+		default:
+			e = rtgerr.New(rtgerr.Internal, "%v", err)
+		}
+	}
+	d := diagnostic{Code: e.Code, Severity: e.Severity(), Retryable: e.Retryable(), Path: e.Path, Message: e.Message}
+	if opts.format == "json" {
+		_ = writeJSON(cmd.OutOrStdout(), struct {
+			Error diagnostic `json:"error"`
+		}{d})
+	} else {
+		fmt.Fprintf(cmd.ErrOrStderr(), "error %s: %s\n", d.Code, d.Message)
+	}
+	return &exitError{code: ExitFailure}
 }
 
 func writeJSON(w io.Writer, v any) error {

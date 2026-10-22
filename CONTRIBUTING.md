@@ -24,7 +24,7 @@ organized and what we expect from changes.
 | Component | Requirements |
 |---|---|
 | Engine | Go 1.25+ (latest patch release) |
-| Integration tests (later) | Docker |
+| Integration tests | Docker (see [docs/development.md](docs/development.md)) |
 
 ```bash
 cd engine

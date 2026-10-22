@@ -1,0 +1,143 @@
+name: engine
+
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - "engine/**"
+      - "specs/**"
+      - "conformance/**"
+      - "examples/**"
+      - ".github/workflows/engine.yml"
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engine-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: engine
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, go ${{ matrix.go }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        go: ["1.25.x", "stable"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: ${{ matrix.go }}
+          check-latest: true
+          cache-dependency-path: engine/go.sum
+      - name: gofmt
+        if: runner.os == 'Linux'
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: go vet
+        run: go vet ./...
+      - name: Embedded specs match specs/
+        if: runner.os == 'Linux'
+        run: |
+          go generate ./...
+          git diff --exit-code -- spec/data || { echo "::error::engine/spec/data is out of date; run 'go generate ./...' in engine/"; exit 1; }
+      - name: Unit tests
+        if: runner.os == 'Linux'
+        run: go test -race ./...
+      - name: Unit tests
+        if: runner.os != 'Linux'
+        run: go test ./...
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: engine/go.sum
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          working-directory: engine
+          args: --build-tags integration
+
+  vulnerabilities:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          check-latest: true
+          cache-dependency-path: engine/go.sum
+      - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rtogtor
+          # Throwaway password for a container that lives only for this job.
+          POSTGRES_PASSWORD: rtogtor-ci
+          POSTGRES_DB: ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rtogtor -d ecommerce"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      RTOGTOR_TEST_POSTGRES_URL: postgres://rtogtor:rtogtor-ci@localhost:5432/ecommerce?sslmode=disable
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          check-latest: true
+          cache-dependency-path: engine/go.sum
+      - name: Integration tests (PostgreSQL)
+        run: go test -tags integration -count=1 ./...
+
+  build:
+    name: build (${{ matrix.goos }}-${{ matrix.goarch }})
+    needs: [test, integration]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64, ext: .exe }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          check-latest: true
+          cache-dependency-path: engine/go.sum
+      - name: Cross-compile
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: go build -trimpath -ldflags "-s -w" -o ../dist/rtogtor-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} ./cmd/rtogtor
+      - uses: actions/upload-artifact@v7
+        with:
+          name: rtogtor-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+          retention-days: 7

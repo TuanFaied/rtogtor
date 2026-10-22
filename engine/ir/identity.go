@@ -67,7 +67,7 @@ func (k Key) Serialize() []byte {
 	buf := make([]byte, 0, size)
 	buf = append(buf, identityDomain...)
 	buf = appendLengthPrefixed(buf, k.EntityType)
-	buf = binary.BigEndian.AppendUint32(buf, uint32(len(k.Components)))
+	buf = appendLength(buf, len(k.Components))
 	for _, c := range k.Components {
 		buf = append(buf, identityTags[c.Type]...)
 		buf = append(buf, ':')
@@ -77,11 +77,16 @@ func (k Key) Serialize() []byte {
 }
 
 func appendLengthPrefixed(buf []byte, s string) []byte {
-	if len(s) > math.MaxUint32 {
-		panic("ir: identity field longer than 4 GiB")
+	return append(appendLength(buf, len(s)), s...)
+}
+
+// appendLength appends n as u32be. Inputs anywhere near 4 GiB are impossible
+// for real keys, so exceeding the range is a programming error.
+func appendLength(buf []byte, n int) []byte {
+	if n < 0 || uint64(n) > math.MaxUint32 {
+		panic("ir: identity length out of the u32 range")
 	}
-	buf = binary.BigEndian.AppendUint32(buf, uint32(len(s)))
-	return append(buf, s...)
+	return binary.BigEndian.AppendUint32(buf, uint32(n)) //nolint:gosec // range checked above
 }
 
 // ID returns the rtg_id of k: lowercase hex SHA-256 of its serialization.

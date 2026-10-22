@@ -1,0 +1,43 @@
+# Disposable local databases for development and integration tests.
+#
+#   cp .env.example .env      # then set passwords in .env (never commit it)
+#   docker compose up -d --wait
+#   docker compose down -v    # removes containers AND data
+#
+# Ports bind to 127.0.0.1 only, so the databases are not reachable from other
+# machines. PostgreSQL loads examples/ecommerce/schema.sql on first start.
+
+name: rtogtor
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: rtogtor
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ecommerce
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - ./examples/ecommerce/schema.sql:/docker-entrypoint-initdb.d/01-ecommerce.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rtogtor -d ecommerce"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  neo4j:
+    image: neo4j:5-community
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:?set NEO4J_PASSWORD in .env (at least 8 characters)}
+      # Not NEO4J_*: the image turns those variables into server settings.
+      HEALTHCHECK_PASSWORD: ${NEO4J_PASSWORD}
+    ports:
+      - "127.0.0.1:${NEO4J_HTTP_PORT:-7474}:7474"
+      - "127.0.0.1:${NEO4J_BOLT_PORT:-7687}:7687"
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p \"$${HEALTHCHECK_PASSWORD}\" 'RETURN 1' >/dev/null"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 20s
