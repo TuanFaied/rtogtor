@@ -41,7 +41,7 @@ your code ──► RtoGtoR.dll ──(JSON Lines on stdin/stdout)──► rtog
 From `sdks/dotnet/`:
 
 ```bash
-./build-engine.sh                      # engine for this platform → src/RtoGtoR/runtimes
+bash ./build-engine.sh                 # engine for this platform → src/RtoGtoR/runtimes
 dotnet build -c Release
 dotnet test                            # offline, engine, protocol and conformance tests
 ```

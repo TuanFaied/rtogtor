@@ -1,0 +1,333 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TuanFaied/rtogtor/specs/report.schema.json",
+  "title": "RtoGtoR migration report",
+  "description": "Report of one run (`rtogtor report --run-id <id> --format json`), stored as runs/<runId>/report.json. `rtogtor verify` adds the verification section. Reports never contain credentials or host names.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specVersion",
+    "runId",
+    "mapping",
+    "dryRun",
+    "status",
+    "startedAt",
+    "attempts",
+    "batchSize",
+    "source",
+    "destination",
+    "steps",
+    "totals",
+    "transformations",
+    "failures",
+    "warnings"
+  ],
+  "properties": {
+    "specVersion": {
+      "type": "string"
+    },
+    "runId": {
+      "$ref": "run-state.schema.json#/properties/runId"
+    },
+    "mapping": {
+      "$ref": "run-state.schema.json#/properties/mapping"
+    },
+    "dryRun": {
+      "description": "True when nothing was written to the destination.",
+      "type": "boolean"
+    },
+    "status": {
+      "$ref": "run-state.schema.json#/$defs/status"
+    },
+    "startedAt": {
+      "$ref": "run-state.schema.json#/$defs/timestamp"
+    },
+    "completedAt": {
+      "$ref": "run-state.schema.json#/$defs/timestamp"
+    },
+    "attempts": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "batchSize": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source": {
+      "$ref": "run-state.schema.json#/$defs/endpoint"
+    },
+    "destination": {
+      "$ref": "run-state.schema.json#/$defs/endpoint"
+    },
+    "steps": {
+      "description": "Counts per load step, in plan order.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
+    "totals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "read",
+        "written",
+        "failed",
+        "skipped"
+      ],
+      "properties": {
+        "read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "written": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "transformations": {
+      "description": "Lossy transformations applied, copied from the plan.",
+      "type": "array",
+      "items": {
+        "$ref": "plan.schema.json#/$defs/transformation"
+      }
+    },
+    "failures": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "byCode"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "byCode": {
+          "description": "Ordered by code.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/codeCount"
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "$ref": "plan.schema.json#/$defs/diagnostic"
+      }
+    },
+    "lastError": {
+      "$ref": "run-state.schema.json#/$defs/errorInfo"
+    },
+    "verification": {
+      "$ref": "#/$defs/verification"
+    }
+  },
+  "$defs": {
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "kind",
+        "done",
+        "read",
+        "written",
+        "failed",
+        "skipped",
+        "nullKeys"
+      ],
+      "properties": {
+        "stepId": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "load-nodes",
+            "load-relationships"
+          ]
+        },
+        "done": {
+          "type": "boolean"
+        },
+        "read": {
+          "$ref": "#/$defs/count"
+        },
+        "written": {
+          "description": "Records written. In a dry run: records that passed conversion and would be written.",
+          "$ref": "#/$defs/count"
+        },
+        "failed": {
+          "$ref": "#/$defs/count"
+        },
+        "skipped": {
+          "$ref": "#/$defs/count"
+        },
+        "nullKeys": {
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "checkedAt",
+        "entities",
+        "relationships",
+        "issues"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "passed",
+            "failed"
+          ]
+        },
+        "checkedAt": {
+          "$ref": "run-state.schema.json#/$defs/timestamp"
+        },
+        "entities": {
+          "description": "One check per entity, in plan order.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/entityCheck"
+          }
+        },
+        "relationships": {
+          "description": "One check per (type, fromLabel, toLabel), in plan order of first appearance.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationshipCheck"
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "$ref": "plan.schema.json#/$defs/diagnostic"
+          }
+        }
+      }
+    },
+    "entityCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity",
+        "label",
+        "sourceRows",
+        "destinationNodes",
+        "missing",
+        "missingKeys"
+      ],
+      "properties": {
+        "entity": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceRows": {
+          "description": "Source rows with a non-null key.",
+          "$ref": "#/$defs/count"
+        },
+        "destinationNodes": {
+          "description": "Nodes carrying the entity's primary label.",
+          "$ref": "#/$defs/count"
+        },
+        "missing": {
+          "description": "Source rows whose identity has no node.",
+          "$ref": "#/$defs/count"
+        },
+        "missingKeys": {
+          "description": "Up to 10 keys of missing rows, as canonical text in key order.",
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "relationshipCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "fromLabel",
+        "toLabel",
+        "relationships",
+        "expected",
+        "actual",
+        "dangling"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "fromLabel": {
+          "type": "string"
+        },
+        "toLabel": {
+          "type": "string"
+        },
+        "relationships": {
+          "description": "Mapped relationship names sharing this type and labels.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expected": {
+          "description": "Source references that point to an existing row.",
+          "$ref": "#/$defs/count"
+        },
+        "actual": {
+          "$ref": "#/$defs/count"
+        },
+        "dangling": {
+          "description": "Source references to keys that do not exist (unenforced foreign keys).",
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "codeCount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "count"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

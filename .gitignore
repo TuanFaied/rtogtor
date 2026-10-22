@@ -46,3 +46,14 @@ Thumbs.db
 sdks/dotnet/src/RtoGtoR/runtimes/
 TestResults/
 *.nupkg
+
+# Python SDK
+sdks/python/.venv/
+sdks/python/src/rtogtor/_bin/
+sdks/python/build/
+*.whl
+
+# TypeScript SDK
+sdks/typescript/node_modules/
+sdks/typescript/dist/
+sdks/typescript/engine-bin/

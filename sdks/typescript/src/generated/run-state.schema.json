@@ -1,0 +1,274 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TuanFaied/rtogtor/specs/run-state.schema.json",
+  "title": "RtoGtoR run state",
+  "description": "State of one migration run, stored as runs/<runId>/state.json in the state directory (default .rtogtor). Any engine or SDK can resume a run from this file together with the run's mapping.json and plan.json. Run state never contains credentials or host names. Failed records are stored separately in failures.jsonl, one object per line, each conforming to #/$defs/failure.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "specVersion",
+    "runId",
+    "mapping",
+    "dryRun",
+    "status",
+    "batchSize",
+    "source",
+    "destination",
+    "streams",
+    "attempts",
+    "startedAt",
+    "updatedAt"
+  ],
+  "properties": {
+    "specVersion": {
+      "type": "string"
+    },
+    "runId": {
+      "description": "UUIDv7 (time-ordered), lowercase hyphenated.",
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "hash"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "dryRun": {
+      "type": "boolean"
+    },
+    "status": {
+      "$ref": "#/$defs/status"
+    },
+    "batchSize": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source": {
+      "$ref": "#/$defs/endpoint"
+    },
+    "destination": {
+      "$ref": "#/$defs/endpoint"
+    },
+    "streams": {
+      "description": "One entry per load step of the plan, in plan order.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/stream"
+      }
+    },
+    "attempts": {
+      "description": "Number of times the run was started or resumed.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "startedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "completedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "lastError": {
+      "$ref": "#/$defs/errorInfo"
+    }
+  },
+  "$defs": {
+    "timestamp": {
+      "description": "RFC 3339 UTC timestamp.",
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+    },
+    "status": {
+      "enum": [
+        "running",
+        "succeeded",
+        "succeeded-with-failures",
+        "interrupted",
+        "failed"
+      ]
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "product"
+      ],
+      "properties": {
+        "product": {
+          "enum": [
+            "postgresql",
+            "neo4j"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "database": {
+          "type": "string"
+        }
+      }
+    },
+    "errorInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "stream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "kind",
+        "done",
+        "cursor",
+        "batches",
+        "read",
+        "written",
+        "failed",
+        "skipped",
+        "nullKeys"
+      ],
+      "properties": {
+        "stepId": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "load-nodes",
+            "load-relationships"
+          ]
+        },
+        "done": {
+          "type": "boolean"
+        },
+        "cursor": {
+          "description": "Canonical text of the key of the last row in the last committed batch, in key order (exclusive resume point). null before the first commit.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
+          ]
+        },
+        "batches": {
+          "description": "Committed batches; also the number of the next batch.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "written": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "skipped": {
+          "description": "Rows that produce no write by design, such as a NULL foreign key.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "nullKeys": {
+          "description": "Rows whose key contains NULL; recorded as one aggregate failure.",
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "failure": {
+      "description": "One line of failures.jsonl. Lines whose batch was not committed (batch >= the stream's batches) are ignored, and a replayed batch's lines count once.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stepId",
+        "batch",
+        "key",
+        "code",
+        "message",
+        "at"
+      ],
+      "properties": {
+        "stepId": {
+          "type": "string"
+        },
+        "batch": {
+          "description": "Batch number, or -1 for aggregate failures not tied to a batch.",
+          "type": "integer",
+          "minimum": -1
+        },
+        "key": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/keyValue"
+          }
+        },
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
+        "message": {
+          "type": "string"
+        },
+        "at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "keyValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "column",
+        "type",
+        "value"
+      ],
+      "properties": {
+        "column": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

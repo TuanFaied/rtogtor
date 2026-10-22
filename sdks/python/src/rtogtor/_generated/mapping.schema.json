@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TuanFaied/rtogtor/specs/mapping.schema.json",
+  "title": "RtoGtoR mapping",
+  "description": "Describes how relational tables, keys and foreign keys correspond to graph labels, nodes and relationships. The same structure serves both directions; 'direction' selects which side is the source.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["specVersion", "name", "direction", "source", "destination", "entities"],
+  "properties": {
+    "specVersion": {
+      "description": "Specification version this mapping is written against (semver).",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "name": {
+      "description": "Human-readable mapping name.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "description": { "type": "string" },
+    "direction": {
+      "description": "Which side is read from and which is written to.",
+      "enum": ["relational-to-graph", "graph-to-relational"]
+    },
+    "source": { "$ref": "#/$defs/endpoint" },
+    "destination": { "$ref": "#/$defs/endpoint" },
+    "identity": { "$ref": "#/$defs/identity" },
+    "policies": { "$ref": "#/$defs/policies" },
+    "entities": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/entity" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/relationship" }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "direction": { "const": "relational-to-graph" } } },
+      "then": {
+        "properties": {
+          "source": { "$ref": "#/$defs/relationalEndpoint" },
+          "destination": { "$ref": "#/$defs/graphEndpoint" }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "direction": { "const": "graph-to-relational" } } },
+      "then": {
+        "properties": {
+          "source": { "$ref": "#/$defs/graphEndpoint" },
+          "destination": { "$ref": "#/$defs/relationalEndpoint" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "identifier": {
+      "description": "Entity, relationship, label and property names.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$",
+      "maxLength": 128
+    },
+    "sqlName": {
+      "description": "A PostgreSQL table, schema or column name, as stored in the catalog (case-sensitive, unquoted).",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 63
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "enum": ["postgresql", "neo4j"] },
+        "schema": {
+          "description": "PostgreSQL schema. Defaults to 'public'.",
+          "$ref": "#/$defs/sqlName"
+        },
+        "database": {
+          "description": "Neo4j database name. Defaults to the server's default database.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "relationalEndpoint": {
+      "properties": { "kind": { "const": "postgresql" } },
+      "not": { "required": ["database"] }
+    },
+    "graphEndpoint": {
+      "properties": { "kind": { "const": "neo4j" } },
+      "not": { "required": ["schema"] }
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "description": "'hash' stores rtg_id (specs/identity.md). 'natural' stores the natural key properties instead.",
+          "enum": ["hash", "natural"],
+          "default": "hash"
+        },
+        "property": {
+          "description": "Name of the graph identity property when strategy is 'hash'.",
+          "$ref": "#/$defs/identifier",
+          "default": "rtg_id"
+        }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "loss": {
+          "description": "'strict' rejects lossy transformations unless listed in 'allow'. 'flexible' permits them and reports each one.",
+          "enum": ["strict", "flexible"],
+          "default": "strict"
+        },
+        "allow": {
+          "description": "Lossy transformations explicitly allowed under the strict policy. Every field present narrows the scope of the rule.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/lossAllowance" }
+        }
+      }
+    },
+    "lossAllowance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "reason"],
+      "properties": {
+        "kind": { "enum": ["precision", "range", "representation", "structure"] },
+        "type": { "$ref": "#/$defs/logicalType" },
+        "entity": { "$ref": "#/$defs/identifier" },
+        "property": { "$ref": "#/$defs/identifier" },
+        "reason": {
+          "description": "Why this loss is acceptable. Copied into reports.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "logicalType": {
+      "enum": [
+        "bool", "int64", "decimal", "float64", "string", "uuid", "date",
+        "time", "timetz", "timestamp", "timestamptz", "duration", "bytes",
+        "json", "array"
+      ]
+    },
+    "property": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["column", "property", "type"],
+      "properties": {
+        "column": { "$ref": "#/$defs/sqlName" },
+        "property": { "$ref": "#/$defs/identifier" },
+        "type": { "$ref": "#/$defs/logicalType" },
+        "element": {
+          "description": "Element type when 'type' is 'array'.",
+          "$ref": "#/$defs/logicalType"
+        }
+      },
+      "if": { "properties": { "type": { "const": "array" } } },
+      "then": {
+        "required": ["element"],
+        "properties": { "element": { "not": { "const": "array" } } }
+      },
+      "else": { "not": { "required": ["element"] } }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "table", "labels", "key", "properties"],
+      "properties": {
+        "name": {
+          "description": "Unique entity name. It is the identity entity type (specs/identity.md), so changing it changes every rtg_id.",
+          "$ref": "#/$defs/identifier"
+        },
+        "description": { "type": "string" },
+        "schema": {
+          "description": "Overrides the relational endpoint's schema for this table.",
+          "$ref": "#/$defs/sqlName"
+        },
+        "table": { "$ref": "#/$defs/sqlName" },
+        "labels": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/identifier" }
+        },
+        "key": {
+          "description": "Key columns, in identity order.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/sqlName" }
+        },
+        "properties": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/property" }
+        }
+      }
+    },
+    "endpointRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity", "columns"],
+      "properties": {
+        "entity": { "$ref": "#/$defs/identifier" },
+        "columns": {
+          "description": "Columns that reference the entity's key, in key order.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/sqlName" }
+        }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "description": "Unique relationship mapping name.",
+          "$ref": "#/$defs/identifier"
+        },
+        "description": { "type": "string" },
+        "type": {
+          "description": "Graph relationship type, e.g. PLACED.",
+          "$ref": "#/$defs/identifier"
+        },
+        "foreignKey": {
+          "description": "The relationship comes from a foreign key stored in the 'entity' table that references the 'references' entity.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["entity", "columns", "references", "direction"],
+          "properties": {
+            "entity": {
+              "description": "Entity whose table holds the foreign-key columns.",
+              "$ref": "#/$defs/identifier"
+            },
+            "columns": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/$defs/sqlName" }
+            },
+            "references": {
+              "description": "Entity the foreign key points to. Columns match its key positionally.",
+              "$ref": "#/$defs/identifier"
+            },
+            "direction": {
+              "description": "'owner-to-referenced': (entity)-[:TYPE]->(references). 'referenced-to-owner': (references)-[:TYPE]->(entity).",
+              "enum": ["owner-to-referenced", "referenced-to-owner"]
+            }
+          }
+        },
+        "junction": {
+          "description": "The relationship comes from a junction table; each row becomes one relationship (from)-[:TYPE]->(to).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["table", "from", "to"],
+          "properties": {
+            "schema": { "$ref": "#/$defs/sqlName" },
+            "table": { "$ref": "#/$defs/sqlName" },
+            "from": { "$ref": "#/$defs/endpointRef" },
+            "to": { "$ref": "#/$defs/endpointRef" }
+          }
+        },
+        "properties": {
+          "description": "Relationship properties. Columns come from the foreign-key owner table or the junction table.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/property" }
+        }
+      },
+      "oneOf": [
+        { "required": ["foreignKey"], "not": { "required": ["junction"] } },
+        { "required": ["junction"], "not": { "required": ["foreignKey"] } }
+      ]
+    }
+  }
+}

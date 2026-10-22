@@ -24,6 +24,23 @@ dependency.
 | `YamlDotNet` | Reading YAML mappings | The SDK applies YAML 1.2 core-schema typing itself (see `Mapping.cs`) so results match the engine |
 | xUnit, Microsoft.NET.Test.Sdk, coverlet (tests only) | Tests | Standard .NET test stack |
 
+## Python SDK (`sdks/python`)
+
+| Package | Used for | Why |
+|---|---|---|
+| `pydantic` (v2) | Typed models generated from the schemas | The project specification's choice; strict validation, aliases for JSON names |
+| `PyYAML` | Parsing YAML mappings | Ubiquitous. The SDK applies YAML 1.2 typing itself, since PyYAML resolves YAML 1.1 |
+| `jsonschema`, `referencing` | Local mapping validation | Draft 2020-12 with cross-file references |
+| pytest, Hypothesis, Ruff, mypy (dev) | Tests, property tests, lint, types | As specified |
+
+## TypeScript SDK (`sdks/typescript`)
+
+| Package | Used for | Why |
+|---|---|---|
+| `yaml` | Parsing YAML (and JSON) mappings | YAML 1.2 core schema and duplicate-key detection built in |
+| `ajv` | Local mapping validation | Draft 2020-12 |
+| TypeScript 6.0, Vitest, fast-check, ESLint (typescript-eslint), Prettier (dev) | Build, tests, property tests, lint, format | As specified. TypeScript stays below 6.1 until typescript-eslint supports newer versions |
+
 ## Code generator (`tools/codegen`)
 
 No dependencies (standard library only). See ADR-0005.

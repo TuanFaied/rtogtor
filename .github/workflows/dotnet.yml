@@ -43,7 +43,7 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Build the engine for this platform
-        run: ./build-engine.sh
+        run: bash ./build-engine.sh
       - name: Format
         if: runner.os == 'Linux'
         run: dotnet format RtoGtoR.sln --verify-no-changes
@@ -107,7 +107,7 @@ jobs:
         env:
           PGPASSWORD: rtogtor-ci
         run: psql -h localhost -U rtogtor -d ecommerce -v ON_ERROR_STOP=1 -f ../../examples/ecommerce/schema.sql
-      - run: ./build-engine.sh
+      - run: bash ./build-engine.sh
       - name: Integration tests
         run: dotnet test RtoGtoR.sln -c Release --filter "FullyQualifiedName~IntegrationTests"
 
@@ -124,7 +124,7 @@ jobs:
         with:
           dotnet-version: 8.0.x
       - name: Build the engine for every packaged platform
-        run: ./build-engine.sh all
+        run: bash ./build-engine.sh all
       - name: Pack
         run: dotnet pack src/RtoGtoR -c Release -o ../../dist/nuget
       - name: Check the package layout

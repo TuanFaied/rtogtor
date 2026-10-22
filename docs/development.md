@@ -107,14 +107,13 @@ go -C tools/codegen run . -repo ../..   # SDK types (sdks/*/src/*/Generated)
 
 CI fails if either is out of date.
 
-## .NET SDK
+## SDKs
 
-See [docs/sdk/dotnet.md](sdk/dotnet.md). In short, from `sdks/dotnet/`:
-
-```bash
-./build-engine.sh
-dotnet test
-```
+| SDK | Guide | Quick test |
+|---|---|---|
+| .NET | [docs/sdk/dotnet.md](sdk/dotnet.md) | `bash ./build-engine.sh && dotnet test` in `sdks/dotnet/` |
+| Python | [docs/sdk/python.md](sdk/python.md) | `python build_wheels.py --dev && pytest` in `sdks/python/` |
+| TypeScript | [docs/sdk/typescript.md](sdk/typescript.md) | `npm ci && npm run build:engine && npm test` in `sdks/typescript/` |
 
 ## Continuous integration
 
@@ -129,4 +128,4 @@ conformance data or examples:
 | integration | PostgreSQL 17 and Neo4j 5 services; `-tags integration` tests including end-to-end migration, resume and memory tests |
 | build | Cross-compiles the five target platforms on pushes to `main` |
 
-`.github/workflows/dotnet.yml` tests the C# SDK on Linux, Windows and macOS (format, build with warnings as errors, offline, engine, protocol and conformance tests), runs its integration tests against PostgreSQL and Neo4j, and packs and smoke-tests the NuGet package. `.github/workflows/codegen.yml` fails when generated SDK types are out of date.
+`.github/workflows/dotnet.yml` tests the C# SDK (and `python.yml` / `typescript.yml` the Python and TypeScript SDKs) on Linux, Windows and macOS (format, build with warnings as errors, offline, engine, protocol and conformance tests), runs its integration tests against PostgreSQL and Neo4j, and packs and smoke-tests the NuGet package. `.github/workflows/codegen.yml` fails when generated SDK types are out of date.

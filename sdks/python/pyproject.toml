@@ -1,0 +1,70 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rtogtor"
+version = "0.1.0.dev0"
+description = "Relational ↔ graph migration (PostgreSQL → Neo4j) with explicit mappings, plans, resumable runs and verification."
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{ name = "TuanFaied" }]
+requires-python = ">=3.10"
+dependencies = [
+  "pydantic>=2.7,<3",
+  "PyYAML>=6,<7",
+  "jsonschema>=4.23,<5",
+  "referencing>=0.35",
+]
+keywords = ["graph", "neo4j", "postgresql", "migration", "etl"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Programming Language :: Python :: 3",
+  "Topic :: Database",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/TuanFaied/rtogtor"
+Documentation = "https://github.com/TuanFaied/rtogtor/blob/main/docs/sdk/python.md"
+
+[project.scripts]
+rtogtor = "rtogtor.__main__:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "hypothesis>=6", "ruff>=0.6", "mypy>=1.11", "types-PyYAML", "types-jsonschema", "build", "wheel"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+rtogtor = ["py.typed", "_generated/*.json", "_bin/*"]
+
+[tool.ruff]
+line-length = 130
+src = ["src", "tests"]
+extend-exclude = ["src/rtogtor/_generated"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "SIM", "RUF"]
+ignore = ["S101"] # assert is used for invariants and in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S"]
+
+[tool.mypy]
+strict = true
+packages = ["rtogtor"]
+mypy_path = "src"
+plugins = ["pydantic.mypy"]
+
+[[tool.mypy.overrides]]
+module = "rtogtor._generated.*"
+disallow_any_explicit = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: needs RTOGTOR_TEST_POSTGRES_URL and RTOGTOR_TEST_NEO4J_URL"]
+
+[tool.ruff.lint.isort]
+known-local-folder = ["conftest"]
