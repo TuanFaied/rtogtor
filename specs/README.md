@@ -16,9 +16,9 @@ The engine and all SDKs implement what is written here, and nothing more.
 | [`schema-metadata.schema.json`](schema-metadata.schema.json) | Draft | Output of `rtogtor inspect` |
 | [`ir.schema.json`](ir.schema.json) | Early draft | Canonical intermediate representation |
 | [`compatibility.md`](compatibility.md) | Draft | Spec × engine × SDK version matrix |
-| `plan.schema.json` | Planned (M2) | Execution plan output |
-| `report.schema.json` | Planned (M2) | Migration and verification reports |
-| `run-state.schema.json` | Planned (M2) | Runs, checkpoints, failed records |
+| [`plan.schema.json`](plan.schema.json) | Draft | Execution plan output |
+| [`report.schema.json`](report.schema.json) | Draft | Migration and verification reports |
+| [`run-state.schema.json`](run-state.schema.json) | Draft | Runs, checkpoints, failed records |
 | `protocol.schema.json` | Planned (M3) | Engine ↔ SDK messages |
 
 Shared test data that every implementation must pass lives in

@@ -20,7 +20,7 @@ suite for that version.
 
 | SDK | Version | Spec versions | Engine range | Conformance |
 |---|---|---|---|---|
-| Go (engine library) | 0.1.0-dev | 0.1.x | same module | Identity + value vectors pass |
+| Go (engine library) | 0.1.0-dev | 0.1.x | same module | Identity + value vectors and the e-commerce plan case pass |
 | C# | — | — | — | Not started (Milestone 3) |
 | Python | — | — | — | Not started (Milestone 4) |
 | TypeScript | — | — | — | Not started (Milestone 4) |

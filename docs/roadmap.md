@@ -3,7 +3,7 @@
 Each milestone leaves the project runnable. A language SDK is announced as
 supported only after it passes the full conformance suite.
 
-## Milestone 1 — Foundation *(complete pending first green CI run)*
+## Milestone 1 — Foundation *(complete)*
 
 | Step | Status |
 |---|---|
@@ -18,11 +18,19 @@ supported only after it passes the full conformance suite.
 **Done when:** `rtogtor inspect` prints valid metadata for the e-commerce
 database, the identity and value vectors pass, and CI is green.
 
-## Milestone 2 — PostgreSQL → Neo4j vertical slice
+## Milestone 2 — PostgreSQL → Neo4j vertical slice *(implemented on branch `milestone-2/pg-to-neo4j`)*
 
-Planner (`rtogtor plan`, dry run), Neo4j adapter with identity constraints,
-batched execution with checkpoints, resume after injected failure, `verify`,
-reports, bounded-memory test. Adds `plan`, `report` and `run-state` schemas.
+| Item | Status |
+|---|---|
+| `plan`, `report`, `run-state` schemas; error codes for planning, execution, run state, verification | ✅ |
+| Deterministic planner with loss policy, type and foreign-key checks (`rtogtor plan`) | ✅ |
+| Neo4j adapter: identity constraints, `UNWIND`/`MERGE` batches, missing-endpoint detection | ✅ |
+| Batched execution with checkpoints, failed-records store, retries, resume (`rtogtor migrate`) | ✅ |
+| Dry run that writes nothing (tested) | ✅ |
+| Verification (`rtogtor verify`), reports, `rtogtor failures` | ✅ |
+| Resume after injected failures at every crash point (tested) | ✅ |
+| Bounded-memory test (150 000 × 2 KiB rows, heap < 96 MiB) | ✅ |
+| Junction-table relationships, natural identity, `time`/`interval` types | ⏳ See [limitations](limitations.md) |
 
 ## Milestone 3 — Engine protocol + C# SDK
 

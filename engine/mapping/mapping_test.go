@@ -50,8 +50,8 @@ func TestEcommerceExampleIsValid(t *testing.T) {
 	if issues.HasErrors() {
 		t.Fatalf("unexpected errors: %v", issues)
 	}
-	if len(issues) != 1 || issues[0].Code != rtgerr.MapDirectionPending {
-		t.Errorf("expected only the RTG-MAP-010 warning, got %v", codes(issues))
+	if len(issues) != 0 {
+		t.Errorf("expected no issues, got %v", codes(issues))
 	}
 	if m == nil {
 		t.Fatal("mapping is nil")
@@ -345,5 +345,43 @@ func TestFormatFromPath(t *testing.T) {
 	}
 	if _, issues := LoadFile("mapping.txt"); len(issues) != 1 || issues[0].Code != rtgerr.MapParse {
 		t.Errorf("got %v", issues)
+	}
+}
+
+func TestHashIsFormatIndependent(t *testing.T) {
+	yamlDoc := header + "entities:" + customer
+	jsonDoc := `{"specVersion":"0.1.0","name":"test","direction":"relational-to-graph",
+	  "source":{"kind":"postgresql","schema":"public"},"destination":{"kind":"neo4j"},
+	  "identity":{"strategy":"hash","property":"rtg_id"},
+	  "entities":[{"name":"Customer","table":"customers","labels":["Customer"],"key":["id"],
+	    "properties":[{"column":"id","property":"id","type":"int64"},
+	                  {"column":"referred_by","property":"referredBy","type":"int64"}]}]}`
+	a, ia := Decode([]byte(yamlDoc), FormatYAML)
+	b, ib := Decode([]byte(jsonDoc), FormatJSON)
+	if ia.HasErrors() || ib.HasErrors() {
+		t.Fatal(ia, ib)
+	}
+	ha, _ := a.Hash()
+	hb, _ := b.Hash()
+	if ha != hb || len(ha) != 64 {
+		t.Errorf("hashes differ: %s vs %s", ha, hb)
+	}
+	b.Entities[0].Labels = []string{"Client"}
+	if hc, _ := b.Hash(); hc == ha {
+		t.Error("changing the mapping must change the hash")
+	}
+}
+
+func TestGraphToRelationalStillWarns(t *testing.T) {
+	doc := `
+specVersion: "0.1.0"
+name: reverse
+direction: graph-to-relational
+source: { kind: neo4j }
+destination: { kind: postgresql }
+entities:` + customer
+	_, issues := Decode([]byte(doc), FormatYAML)
+	if issues.HasErrors() || len(issues) != 1 || issues[0].Code != rtgerr.MapDirectionPending {
+		t.Errorf("got %v", codes(issues))
 	}
 }

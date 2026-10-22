@@ -74,7 +74,8 @@ arrive in later milestones (see docs/roadmap.md).`,
 		},
 	}
 	root.PersistentFlags().StringVar(&opts.format, "format", "text", `output format: "text" or "json"`)
-	root.AddCommand(newVersionCmd(opts), newValidateCmd(opts), newInspectCmd(opts))
+	root.AddCommand(newVersionCmd(opts), newValidateCmd(opts), newInspectCmd(opts),
+		newPlanCmd(opts), newMigrateCmd(opts), newVerifyCmd(opts), newReportCmd(opts), newFailuresCmd(opts))
 	return root
 }
 

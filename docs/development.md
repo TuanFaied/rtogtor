@@ -64,12 +64,18 @@ go test ./...
 ```
 
 Integration tests run only with the `integration` build tag and require
-`RTOGTOR_TEST_POSTGRES_URL`. They **fail** (rather than skip) when it is
-missing. Each test creates and drops its own `rtg_it_*` schema; point it only
-at a disposable database such as the Compose container.
+`RTOGTOR_TEST_POSTGRES_URL` and, for the end-to-end tests in
+`internal/e2e`, `RTOGTOR_TEST_NEO4J_URL` (for example
+`neo4j://neo4j:<password>@127.0.0.1:7687`). They **fail** (rather than skip) when they are
+missing. Each test creates and drops its own `rtg_it_*`/`rtg_e2e_*` schema and uses
+Neo4j labels with a random suffix, removed afterwards. Point them only at
+disposable databases such as the Compose containers. The end-to-end suite
+includes a bounded-memory test that loads 150 000 rows (about 25 seconds);
+skip it with `-short`.
 
 ```bash
 export RTOGTOR_TEST_POSTGRES_URL="$SOURCE_URL"
+export RTOGTOR_TEST_NEO4J_URL="neo4j://neo4j:${NEO4J_PASSWORD}@127.0.0.1:${NEO4J_BOLT_PORT:-7687}"
 go test -tags integration ./...
 ```
 
@@ -109,5 +115,5 @@ conformance data or examples:
 | test | gofmt, vet, embedded-spec drift, unit tests on Linux/Windows/macOS with Go 1.25.x and stable (race detector on Linux) |
 | lint | golangci-lint (`engine/.golangci.yml`) |
 | vulnerabilities | govulncheck |
-| integration | PostgreSQL 17 service + `-tags integration` tests |
+| integration | PostgreSQL 17 and Neo4j 5 services; `-tags integration` tests including end-to-end migration, resume and memory tests |
 | build | Cross-compiles the five target platforms on pushes to `main` |
