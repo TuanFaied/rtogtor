@@ -19,9 +19,10 @@ forms; the engine reproduces them in `engine/ir/vectors_test.go`.
 
 | Case | Contents |
 |---|---|
-| [`cases/ecommerce/`](cases/ecommerce/) | `expected-schema-metadata.json`: inspection of `examples/ecommerce/schema.sql`, with server version, database name and row estimates removed |
+| [`cases/ecommerce/`](cases/ecommerce/) | `expected-schema-metadata.json`: inspection of `examples/ecommerce/schema.sql`, with server version, database name and row estimates removed. `expected-plan.json`: the RFC 8785 canonical plan for `examples/ecommerce/mapping.yaml` built from that metadata; implementations must reproduce it byte for byte |
 
-Full end-to-end cases arrive in Milestone 2.
+Expected destination snapshots and reports, plus `runner-protocol.md`, arrive
+with the first SDK (Milestone 3).
 
 ### Planned case layout
 

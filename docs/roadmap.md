@@ -3,7 +3,7 @@
 Each milestone leaves the project runnable. A language SDK is announced as
 supported only after it passes the full conformance suite.
 
-## Milestone 1 — Foundation *(complete pending first green CI run)*
+## Milestone 1 — Foundation *(complete)*
 
 | Step | Status |
 |---|---|
@@ -18,17 +18,31 @@ supported only after it passes the full conformance suite.
 **Done when:** `rtogtor inspect` prints valid metadata for the e-commerce
 database, the identity and value vectors pass, and CI is green.
 
-## Milestone 2 — PostgreSQL → Neo4j vertical slice
+## Milestone 2 — PostgreSQL → Neo4j vertical slice *(implemented)*
 
-Planner (`rtogtor plan`, dry run), Neo4j adapter with identity constraints,
-batched execution with checkpoints, resume after injected failure, `verify`,
-reports, bounded-memory test. Adds `plan`, `report` and `run-state` schemas.
+| Item | Status |
+|---|---|
+| `plan`, `report`, `run-state` schemas; error codes for planning, execution, run state, verification | ✅ |
+| Deterministic planner with loss policy, type and foreign-key checks (`rtogtor plan`) | ✅ |
+| Neo4j adapter: identity constraints, `UNWIND`/`MERGE` batches, missing-endpoint detection | ✅ |
+| Batched execution with checkpoints, failed-records store, retries, resume (`rtogtor migrate`) | ✅ |
+| Dry run that writes nothing (tested) | ✅ |
+| Verification (`rtogtor verify`), reports, `rtogtor failures` | ✅ |
+| Resume after injected failures at every crash point (tested) | ✅ |
+| Bounded-memory test (150 000 × 2 KiB rows, heap < 96 MiB) | ✅ |
+| Junction-table relationships, natural identity, `time`/`interval` types | ⏳ See [limitations](limitations.md) |
 
-## Milestone 3 — Engine protocol + C# SDK
+## Milestone 3 — Engine protocol + C# SDK *(implemented on branch `milestone-3/protocol-csharp`)*
 
-Codegen pipeline (schemas → types, with a CI drift check; see ADR-0004),
-JSON-lines protocol v1 (`protocol.schema.json`), NuGet packaging with bundled
-binaries, C# SDK passing all conformance cases.
+| Item | Status |
+|---|---|
+| Go public API (`Migration`, `Connection`, `Plan`, `Run`, `Verify`) shared by the CLI and the protocol server | ✅ |
+| Protocol 1.0: `specs/protocol.md`, `protocol.schema.json`, `rtogtor serve --stdio`, error codes RTG-PROTO-002…008 | ✅ |
+| Codegen pipeline with CI drift check ([ADR-0005](adr/0005-own-schema-code-generator.md)) | ✅ (C#; Python/TS emitters in M4) |
+| C# SDK: `Migration`, `Engine`, `Mapping`, `Connection`, `RtoGtoRException`, generated model | ✅ |
+| C# conformance: identity and value vectors, e-commerce plan case | ✅ all pass |
+| NuGet package with engines for 5 platforms, smoke-tested as an installed package | ✅ (not yet published) |
+| Conformance runner protocol (`conformance/runner-protocol.md`) | ✅ |
 
 ## Milestone 4 — Python and TypeScript SDKs
 

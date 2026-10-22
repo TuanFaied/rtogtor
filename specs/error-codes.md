@@ -38,14 +38,16 @@ Each code defines:
 | `SCHEMA` | Schema inspection |
 | `CONN` | Connections |
 | `PG` | PostgreSQL adapter |
+| `NEO` | Neo4j adapter |
+| `PLAN` | Planning |
+| `EXEC` | Execution |
+| `RUN` | Run state and resume |
+| `VERIFY` | Verification |
 | `PROTO` | Engine ↔ SDK protocol |
 | `CLI` | Command-line usage |
 | `INTERNAL` | Engine bugs |
 
-Areas reserved for later milestones: `PLAN`, `EXEC`, `VERIFY`, `RUN` (run
-state), `NEO` (Neo4j adapter).
-
-## Codes in v0.1
+## Codes
 
 | Code | Severity | Retryable | Title |
 |---|---|---|---|
@@ -73,7 +75,34 @@ state), `NEO` (Neo4j adapter).
 | `RTG-CONN-001` | error | yes | Cannot connect to the database |
 | `RTG-CONN-002` | error | no | Connection settings missing or invalid |
 | `RTG-PG-001` | error | no | PostgreSQL query failed |
+| `RTG-PLAN-001` | error | no | Mapped table not found |
+| `RTG-PLAN-002` | error | no | Mapped column not found |
+| `RTG-PLAN-003` | error | no | Declared type does not match the source |
+| `RTG-PLAN-004` | warning | no | Key column is nullable |
+| `RTG-PLAN-005` | error | no | Lossy transformation not allowed |
+| `RTG-PLAN-006` | error | no | Feature not yet supported by this engine |
+| `RTG-PLAN-007` | error | no | Foreign key does not match the referenced key types |
+| `RTG-EXEC-001` | error | no | Record could not be converted |
+| `RTG-EXEC-002` | error | no | Relationship endpoint not found |
+| `RTG-EXEC-003` | error | yes | Batch write failed |
+| `RTG-EXEC-004` | error | yes | Run interrupted |
+| `RTG-RUN-001` | error | no | Run not found |
+| `RTG-RUN-002` | error | no | Mapping changed since the run started |
+| `RTG-RUN-003` | error | no | Run already completed |
+| `RTG-RUN-004` | fatal | no | Run state unreadable |
+| `RTG-NEO-001` | error | no | Neo4j query failed |
+| `RTG-VERIFY-001` | error | no | Entity missing in destination |
+| `RTG-VERIFY-002` | error | no | Entity count mismatch |
+| `RTG-VERIFY-003` | error | no | Relationship count mismatch |
+| `RTG-VERIFY-004` | warning | no | Dangling source reference |
 | `RTG-PROTO-001` | error | no | Unsupported protocol version |
+| `RTG-PROTO-002` | error | no | Malformed protocol message |
+| `RTG-PROTO-003` | error | no | Unknown method |
+| `RTG-PROTO-004` | error | no | Invalid request parameters |
+| `RTG-PROTO-005` | error | no | Duplicate request ID |
+| `RTG-PROTO-006` | error | no | Handshake required |
+| `RTG-PROTO-007` | fatal | no | Engine version not supported by this SDK |
+| `RTG-PROTO-008` | fatal | no | Engine unavailable |
 | `RTG-CLI-001` | error | no | Invalid command-line usage |
 | `RTG-INTERNAL-001` | fatal | no | Internal error |
 

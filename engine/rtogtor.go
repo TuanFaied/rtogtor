@@ -3,8 +3,19 @@
 // Import path: github.com/TuanFaied/rtogtor/engine (package name rtogtor; see
 // docs/adr/0002-go-module-path-and-tagging.md).
 //
-// STATUS: pre-alpha. This release provides mapping loading and validation;
-// Connection, Migration, Plan and Report arrive with Milestone 2.
+// The Go API is the engine itself: Go programs call it in-process, while the
+// Python, TypeScript and C# SDKs reach the same code through `rtogtor serve
+// --stdio` (specs/protocol.schema.json).
+//
+//	src := rtogtor.PostgreSQLFromEnv("SOURCE_URL")
+//	dst := rtogtor.Neo4j("neo4j://localhost:7687", rtogtor.BasicAuthFromEnv("NEO4J"))
+//	m, err := rtogtor.LoadMapping("mapping.yaml")
+//	mig := rtogtor.NewMigration(src, dst, m)
+//	defer mig.Close()
+//	plan, err := mig.Plan(ctx)
+//	report, err := mig.Run(ctx, rtogtor.RunOptions{})
+//
+// STATUS: pre-alpha; PostgreSQL → Neo4j only.
 package rtogtor
 
 import (

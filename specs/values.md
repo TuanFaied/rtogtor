@@ -234,6 +234,15 @@ outputs, mapping hashes), they are serialized with the
 insignificant whitespace, ECMAScript number formatting, and UTF-8 output.
 Array order is defined per document type by its schema.
 
+**Stricter than RFC 8785 on numbers.** RFC 8785 converts every JSON number
+to an IEEE 754 double, which silently changes numbers that a double cannot
+hold exactly (for example `12345678901234567890` would become
+`12345678901234567000`). RtoGtoR rejects such numbers instead: a JSON
+document containing one cannot be canonicalized and the record fails with
+`RTG-EXEC-001`. Numbers that a double holds exactly (`0.1`, `4.50`, `1E30`)
+are written in the RFC 8785 form. RtoGtoR's own documents never contain
+such numbers, because `int64` and `decimal` values are encoded as strings.
+
 ## 7. Database type mappings (informative)
 
 ### PostgreSQL → logical type
@@ -267,9 +276,9 @@ Array order is defined per document type by its schema.
 | `string` | String | no |
 | `uuid` | String | `representation` |
 | `date` | Date | no |
-| `time` / `timetz` | LocalTime / Time | no |
-| `timestamp` / `timestamptz` | LocalDateTime / DateTime (UTC) | no |
-| `duration` | Duration | no |
+| `time` / `timetz` | LocalTime / Time | no (not yet written by engine 0.1) |
+| `timestamp` / `timestamptz` | LocalDateTime / DateTime in zone `UTC` | no |
+| `duration` | Duration | no (not yet written by engine 0.1) |
 | `bytes` | ByteArray | no |
 | `json` | String (canonical JSON) | `representation` |
 | `array` | List | `structure` if elements contain `null` (Neo4j lists cannot hold `null`) |

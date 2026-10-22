@@ -4,6 +4,11 @@ updates:
     directory: /engine
     schedule:
       interval: weekly
+    ignore:
+      # v0.42.0+ requires Go 1.26; the engine supports Go 1.25 (see
+      # docs/dependencies.md). Remove when the minimum Go version is raised.
+      - dependency-name: golang.org/x/text
+        versions: [">= 0.42.0"]
     groups:
       go-dependencies:
         patterns: ["*"]
@@ -15,3 +20,16 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  - package-ecosystem: nuget
+    directory: /sdks/dotnet
+    schedule:
+      interval: weekly
+    groups:
+      nuget:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /tools/codegen
+    schedule:
+      interval: monthly

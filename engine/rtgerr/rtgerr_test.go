@@ -19,7 +19,15 @@ var allConstants = []Code{
 	IDNullComponent, IDTypeNotPermitted, IDEmptyInput,
 	SchemaUnsupportedType, SchemaNoPrimaryKey, SchemaNotFound,
 	ConnFailed, ConnConfig, PGQuery,
-	ProtoUnsupportedMajor, CLIUsage, Internal,
+	PlanTableNotFound, PlanColumnNotFound, PlanTypeMismatch, PlanNullableKey,
+	PlanLossNotAllowed, PlanUnsupported, PlanForeignKeyTypes,
+	ExecConversion, ExecMissingEndpoint, ExecBatchFailed, ExecInterrupted,
+	RunNotFound, RunMappingChanged, RunCompleted, RunStateCorrupt,
+	NeoQuery,
+	VerifyMissingEntity, VerifyEntityCount, VerifyRelationCount, VerifyDanglingSource,
+	ProtoUnsupportedMajor, ProtoMalformed, ProtoUnknownMethod, ProtoInvalidParams,
+	ProtoDuplicateID, ProtoHandshake, ProtoEngineVersion, ProtoEngineMissing,
+	CLIUsage, Internal,
 }
 
 var codePattern = regexp.MustCompile(`^RTG-[A-Z]+-[0-9]{3}$`)

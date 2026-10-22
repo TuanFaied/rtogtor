@@ -27,7 +27,14 @@ const (
 	SchemaMetadataSchemaFile = "schema-metadata.schema.json"
 	IRSchemaFile             = "ir.schema.json"
 	ErrorCodesFile           = "error-codes.json"
+	PlanSchemaFile           = "plan.schema.json"
+	ReportSchemaFile         = "report.schema.json"
+	RunStateSchemaFile       = "run-state.schema.json"
+	ProtocolSchemaFile       = "protocol.schema.json"
 )
+
+// ProtocolVersion is the engine ↔ SDK protocol version (specs/protocol.md).
+const ProtocolVersion = "1.0"
 
 // Files lists every embedded specification file. The generator copies exactly
 // these files from specs/.
@@ -36,6 +43,10 @@ var Files = []string{
 	SchemaMetadataSchemaFile,
 	IRSchemaFile,
 	ErrorCodesFile,
+	PlanSchemaFile,
+	ReportSchemaFile,
+	RunStateSchemaFile,
+	ProtocolSchemaFile,
 }
 
 // SchemaBaseURL is the base of every schema's $id.
