@@ -1,12 +1,12 @@
 module github.com/TuanFaied/rtogtor/engine
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/jackc/pgx/v5 v5.11.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/spf13/cobra v1.10.2
-	golang.org/x/text v0.41.0
+	golang.org/x/text v0.43.0
 	gopkg.in/yaml.v3 v3.0.1
 	pgregory.net/rapid v1.3.0
 )
