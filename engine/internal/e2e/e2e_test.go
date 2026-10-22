@@ -125,10 +125,27 @@ func (w *world) cypher(q string, params map[string]any) []*driver.Record {
 	return res.Records
 }
 
+// cleanupGraph deletes the test's nodes and constraints. CALL … IN
+// TRANSACTIONS needs an auto-commit transaction, so it runs through
+// session.Run rather than a managed transaction. Failures fail the test:
+// silently leaving data behind would hide problems.
 func (w *world) cleanupGraph() {
+	ctx := context.Background()
+	s := w.drv.NewSession(ctx, driver.SessionConfig{})
+	defer func() { _ = s.Close(ctx) }()
 	for _, l := range w.labels {
-		_, _ = driver.ExecuteQuery(context.Background(), w.drv, "MATCH (n:`"+l+"`) CALL (n) { DETACH DELETE n } IN TRANSACTIONS OF 5000 ROWS", nil, driver.EagerResultTransformer)
-		_, _ = driver.ExecuteQuery(context.Background(), w.drv, "DROP CONSTRAINT `rtg_"+l+"_rtg_id` IF EXISTS", nil, driver.EagerResultTransformer)
+		for _, q := range []string{
+			"MATCH (n:`" + l + "`) CALL (n) { DETACH DELETE n } IN TRANSACTIONS OF 5000 ROWS",
+			"DROP CONSTRAINT `rtg_" + l + "_rtg_id` IF EXISTS",
+		} {
+			res, err := s.Run(ctx, q, nil)
+			if err == nil {
+				_, err = res.Consume(ctx)
+			}
+			if err != nil {
+				w.t.Errorf("cleanup %q: %v", q, err)
+			}
+		}
 	}
 }
 

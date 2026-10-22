@@ -1,0 +1,32 @@
+name: codegen
+
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - "specs/**"
+      - "tools/codegen/**"
+      - "sdks/*/src/*/Generated/**"
+      - ".github/workflows/codegen.yml"
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+jobs:
+  generated-code-is-current:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: tools/codegen/go.mod
+      - name: gofmt and vet
+        working-directory: tools/codegen
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+      - name: Generated SDK types match specs/
+        run: go -C tools/codegen run . -repo ../.. -check

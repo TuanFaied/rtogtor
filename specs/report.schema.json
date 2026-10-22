@@ -117,22 +117,7 @@
           "description": "Ordered by code.",
           "type": "array",
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "code",
-              "count"
-            ],
-            "properties": {
-              "code": {
-                "type": "string",
-                "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
-              },
-              "count": {
-                "type": "integer",
-                "minimum": 1
-              }
-            }
+            "$ref": "#/$defs/codeCount"
           }
         }
       }
@@ -223,93 +208,14 @@
           "description": "One check per entity, in plan order.",
           "type": "array",
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "entity",
-              "label",
-              "sourceRows",
-              "destinationNodes",
-              "missing",
-              "missingKeys"
-            ],
-            "properties": {
-              "entity": {
-                "type": "string"
-              },
-              "label": {
-                "type": "string"
-              },
-              "sourceRows": {
-                "description": "Source rows with a non-null key.",
-                "$ref": "#/$defs/count"
-              },
-              "destinationNodes": {
-                "description": "Nodes carrying the entity's primary label.",
-                "$ref": "#/$defs/count"
-              },
-              "missing": {
-                "description": "Source rows whose identity has no node.",
-                "$ref": "#/$defs/count"
-              },
-              "missingKeys": {
-                "description": "Up to 10 keys of missing rows, as canonical text in key order.",
-                "type": "array",
-                "maxItems": 10,
-                "items": {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              }
-            }
+            "$ref": "#/$defs/entityCheck"
           }
         },
         "relationships": {
           "description": "One check per (type, fromLabel, toLabel), in plan order of first appearance.",
           "type": "array",
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": [
-              "type",
-              "fromLabel",
-              "toLabel",
-              "relationships",
-              "expected",
-              "actual",
-              "dangling"
-            ],
-            "properties": {
-              "type": {
-                "type": "string"
-              },
-              "fromLabel": {
-                "type": "string"
-              },
-              "toLabel": {
-                "type": "string"
-              },
-              "relationships": {
-                "description": "Mapped relationship names sharing this type and labels.",
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "expected": {
-                "description": "Source references that point to an existing row.",
-                "$ref": "#/$defs/count"
-              },
-              "actual": {
-                "$ref": "#/$defs/count"
-              },
-              "dangling": {
-                "description": "Source references to keys that do not exist (unenforced foreign keys).",
-                "$ref": "#/$defs/count"
-              }
-            }
+            "$ref": "#/$defs/relationshipCheck"
           }
         },
         "issues": {
@@ -317,6 +223,109 @@
           "items": {
             "$ref": "plan.schema.json#/$defs/diagnostic"
           }
+        }
+      }
+    },
+    "entityCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity",
+        "label",
+        "sourceRows",
+        "destinationNodes",
+        "missing",
+        "missingKeys"
+      ],
+      "properties": {
+        "entity": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "sourceRows": {
+          "description": "Source rows with a non-null key.",
+          "$ref": "#/$defs/count"
+        },
+        "destinationNodes": {
+          "description": "Nodes carrying the entity's primary label.",
+          "$ref": "#/$defs/count"
+        },
+        "missing": {
+          "description": "Source rows whose identity has no node.",
+          "$ref": "#/$defs/count"
+        },
+        "missingKeys": {
+          "description": "Up to 10 keys of missing rows, as canonical text in key order.",
+          "type": "array",
+          "maxItems": 10,
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "relationshipCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "fromLabel",
+        "toLabel",
+        "relationships",
+        "expected",
+        "actual",
+        "dangling"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "fromLabel": {
+          "type": "string"
+        },
+        "toLabel": {
+          "type": "string"
+        },
+        "relationships": {
+          "description": "Mapped relationship names sharing this type and labels.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "expected": {
+          "description": "Source references that point to an existing row.",
+          "$ref": "#/$defs/count"
+        },
+        "actual": {
+          "$ref": "#/$defs/count"
+        },
+        "dangling": {
+          "description": "Source references to keys that do not exist (unenforced foreign keys).",
+          "$ref": "#/$defs/count"
+        }
+      }
+    },
+    "codeCount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "count"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
+        "count": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     }

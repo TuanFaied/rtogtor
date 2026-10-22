@@ -63,6 +63,9 @@ func Open(ctx context.Context, connURL, database string) (*Adapter, error) {
 	}
 	if err := drv.VerifyConnectivity(ctx); err != nil {
 		_ = drv.Close(context.Background())
+		if ctx.Err() != nil {
+			return nil, ctx.Err() // cancelled, not a connection failure
+		}
 		return nil, rtgerr.New(rtgerr.ConnFailed, "cannot connect to Neo4j: %s", redact.Secrets(err.Error(), secrets...))
 	}
 	return &Adapter{drv: drv, database: database, secrets: secrets}, nil

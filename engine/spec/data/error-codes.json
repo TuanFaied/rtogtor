@@ -363,6 +363,62 @@
       "remediation": "Use an SDK version compatible with this engine (see specs/compatibility.md)."
     },
     {
+      "code": "RTG-PROTO-002",
+      "title": "Malformed protocol message",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A line on the protocol channel is not a valid JSON object, is too large, or does not match specs/protocol.schema.json.",
+      "remediation": "This is an SDK defect; report it with the SDK and engine versions."
+    },
+    {
+      "code": "RTG-PROTO-003",
+      "title": "Unknown method",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The request names a method this engine does not implement.",
+      "remediation": "Upgrade the engine, or check the SDK's supported engine range."
+    },
+    {
+      "code": "RTG-PROTO-004",
+      "title": "Invalid request parameters",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The request's params do not match the method's schema, or a connection URI contains credentials.",
+      "remediation": "Pass credentials through environment variables (urlEnv, userEnv, passwordEnv), never in uri."
+    },
+    {
+      "code": "RTG-PROTO-005",
+      "title": "Duplicate request ID",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A request reused the ID of a request that is still in flight.",
+      "remediation": "This is an SDK defect; IDs must be unique among in-flight requests."
+    },
+    {
+      "code": "RTG-PROTO-006",
+      "title": "Handshake required",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A request other than handshake arrived before a successful handshake.",
+      "remediation": "Send handshake first."
+    },
+    {
+      "code": "RTG-PROTO-007",
+      "title": "Engine version not supported by this SDK",
+      "severity": "fatal",
+      "retryable": false,
+      "meaning": "The engine reported a version outside the range this SDK supports. Raised by SDKs after the handshake.",
+      "remediation": "Install matching SDK and engine versions (see specs/compatibility.md), or point the SDK to a compatible engine binary."
+    },
+    {
+      "code": "RTG-PROTO-008",
+      "title": "Engine unavailable",
+      "severity": "fatal",
+      "retryable": false,
+      "meaning": "The SDK could not find or start the engine binary, or the engine process exited unexpectedly. Raised by SDKs.",
+      "remediation": "Reinstall the SDK package for your platform, or set RTOGTOR_ENGINE_PATH to an rtogtor binary. The error message includes the engine's last diagnostic lines."
+    },
+    {
       "code": "RTG-CLI-001",
       "title": "Invalid command-line usage",
       "severity": "error",

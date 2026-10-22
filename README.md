@@ -6,7 +6,7 @@ RtoGtoR is an open-source engine for moving data between relational and graph
 databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned for
 **Go, Python, TypeScript and C#**.
 
-> **Status: pre-alpha (Milestone 2 — PostgreSQL → Neo4j).** Nothing here is ready for
+> **Status: pre-alpha (Milestone 3 — engine protocol and .NET SDK).** Nothing here is ready for
 > production data yet. See [Capabilities](#capabilities) for exactly what works.
 
 ## Why RtoGtoR
@@ -35,7 +35,10 @@ databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned f
 | PostgreSQL schema inspection (`rtogtor inspect`) | ✅ Implemented, integration-tested |
 | PostgreSQL → Neo4j migration: `plan`, `migrate` (`--dry-run`, `--resume`), `verify`, `report`, `failures` | ✅ Implemented, end-to-end tested |
 | Neo4j → PostgreSQL migration | ⏳ Planned (Milestone 5) |
-| Python / TypeScript / C# SDKs | ⏳ Planned (Milestones 3–4) |
+| Go SDK (the engine library, `github.com/TuanFaied/rtogtor/engine`) | ✅ Implemented ([docs](docs/sdk/go.md)) |
+| Engine ↔ SDK protocol 1.0 (`rtogtor serve --stdio`) | ✅ Implemented, schema-validated in tests |
+| C# SDK (`RtoGtoR` on NuGet, bundles the engine for 5 platforms) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/dotnet.md)) |
+| Python / TypeScript SDKs | ⏳ Planned (Milestone 4) |
 
 ✅ implemented · 🟡 partial/draft · ⏳ planned. A language SDK is listed as
 supported only after it passes the full conformance suite.
@@ -57,6 +60,8 @@ go build -o bin/rtogtor ./cmd/rtogtor
 |---|---|
 | [`specs/`](specs/) | The language-neutral specification — the source of truth |
 | [`engine/`](engine/) | Go engine: library (`github.com/TuanFaied/rtogtor/engine`) and CLI |
+| [`sdks/dotnet/`](sdks/dotnet/) | C# SDK |
+| [`tools/codegen/`](tools/codegen/) | Generates SDK types from `specs/` |
 | [`conformance/`](conformance/) | Shared test vectors and cases every SDK must pass |
 | [`examples/`](examples/) | Example schemas and mappings |
 | [`docs/`](docs/) | Architecture decisions, guides, full project specification |

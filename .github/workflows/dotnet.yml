@@ -1,0 +1,144 @@
+name: dotnet
+
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - "sdks/dotnet/**"
+      - "engine/**"
+      - "specs/**"
+      - "conformance/**"
+      - "examples/**"
+      - ".github/workflows/dotnet.yml"
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dotnet-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sdks/dotnet
+    shell: bash
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the engine for this platform
+        run: ./build-engine.sh
+      - name: Format
+        if: runner.os == 'Linux'
+        run: dotnet format RtoGtoR.sln --verify-no-changes
+      - name: Build (warnings are errors)
+        run: dotnet build RtoGtoR.sln -c Release
+      - name: Test (offline, engine, protocol, conformance)
+        env:
+          RTOGTOR_CONFORMANCE_OUT: ${{ runner.temp }}/conformance-dotnet-${{ runner.os }}.json
+        run: dotnet test RtoGtoR.sln -c Release --no-build
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: conformance-dotnet-${{ runner.os }}
+          path: ${{ runner.temp }}/conformance-dotnet-${{ runner.os }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rtogtor
+          # Throwaway passwords for containers that live only for this job.
+          POSTGRES_PASSWORD: rtogtor-ci
+          POSTGRES_DB: ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rtogtor -d ecommerce"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      neo4j:
+        image: neo4j:5-community
+        env:
+          NEO4J_AUTH: neo4j/rtogtor-ci-password
+        ports:
+          - 7474:7474
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p rtogtor-ci-password 'RETURN 1'"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 40
+          --health-start-period 20s
+    env:
+      RTOGTOR_TEST_POSTGRES_URL: postgres://rtogtor:rtogtor-ci@localhost:5432/ecommerce?sslmode=disable
+      RTOGTOR_TEST_NEO4J_URL: neo4j://neo4j:rtogtor-ci-password@localhost:7687
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Load the e-commerce example
+        env:
+          PGPASSWORD: rtogtor-ci
+        run: psql -h localhost -U rtogtor -d ecommerce -v ON_ERROR_STOP=1 -f ../../examples/ecommerce/schema.sql
+      - run: ./build-engine.sh
+      - name: Integration tests
+        run: dotnet test RtoGtoR.sln -c Release --filter "FullyQualifiedName~IntegrationTests"
+
+  pack:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the engine for every packaged platform
+        run: ./build-engine.sh all
+      - name: Pack
+        run: dotnet pack src/RtoGtoR -c Release -o ../../dist/nuget
+      - name: Check the package layout
+        run: |
+          unzip -l ../../dist/nuget/RtoGtoR.*.nupkg | tee /tmp/contents
+          for rid in linux-x64 linux-arm64 osx-x64 osx-arm64; do
+            grep -q " runtimes/$rid/native/rtogtor$" /tmp/contents || { echo "::error::missing $rid engine"; exit 1; }
+          done
+          grep -q " runtimes/win-x64/native/rtogtor.exe$" /tmp/contents || { echo "::error::missing win-x64 engine"; exit 1; }
+      - name: Smoke test the installed package (bundled engine, Unix permissions)
+        working-directory: sdks/dotnet/smoke
+        run: dotnet run -c Release -- ../../..
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nuget-package
+          path: dist/nuget/*.nupkg
+          retention-days: 14

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Installs the packed RtoGtoR .nupkg (from dist/nuget) like a user would and exercises the
+       bundled engine. Not part of RtoGtoR.sln; see docs/sdk/dotnet.md for how to run it. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RtoGtoRVersion Condition="'$(RtoGtoRVersion)' == ''">0.1.0-dev</RtoGtoRVersion>
+    <RestoreSources>$(MSBuildThisFileDirectory)../../../dist/nuget;https://api.nuget.org/v3/index.json</RestoreSources>
+    <RestoreNoCache>true</RestoreNoCache>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="RtoGtoR" Version="$(RtoGtoRVersion)" />
+  </ItemGroup>
+</Project>

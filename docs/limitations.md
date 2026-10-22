@@ -10,7 +10,8 @@ Each item fails clearly with an error code; none is silently ignored.
 | Neo4j → PostgreSQL | `rtogtor plan`/`migrate` fail with `RTG-PLAN-006`; `validate` warns with `RTG-MAP-010` | Milestone 5 |
 | Junction-table relationships | `RTG-PLAN-006`. Map the junction table as an entity with two foreign-key relationships instead | Later in Milestone 2 / 5 |
 | `identity.strategy: natural` | `RTG-PLAN-006`; use `hash` | Later |
-| Python, TypeScript and C# SDKs | Not available; use the CLI or the Go library | Milestones 3–4 |
+| Python and TypeScript SDKs | Not available; use the CLI, the Go library or the C# SDK | Milestone 4 |
+| C# connections with literal credentials outside `Migration` | `Engine` methods accept only connections that name environment variables | — |
 
 ## Types
 

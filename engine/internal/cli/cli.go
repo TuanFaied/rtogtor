@@ -8,12 +8,14 @@ import (
 	"fmt"
 	"io"
 	"runtime/debug"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	rtogtor "github.com/TuanFaied/rtogtor/engine"
 	"github.com/TuanFaied/rtogtor/engine/mapping"
 	"github.com/TuanFaied/rtogtor/engine/rtgerr"
+	"github.com/TuanFaied/rtogtor/engine/spec"
 )
 
 // Exit codes.
@@ -75,7 +77,7 @@ arrive in later milestones (see docs/roadmap.md).`,
 	}
 	root.PersistentFlags().StringVar(&opts.format, "format", "text", `output format: "text" or "json"`)
 	root.AddCommand(newVersionCmd(opts), newValidateCmd(opts), newInspectCmd(opts),
-		newPlanCmd(opts), newMigrateCmd(opts), newVerifyCmd(opts), newReportCmd(opts), newFailuresCmd(opts))
+		newPlanCmd(opts), newMigrateCmd(opts), newVerifyCmd(opts), newReportCmd(opts), newFailuresCmd(opts), newServeCmd(opts))
 	return root
 }
 
@@ -127,7 +129,7 @@ func currentVersion() versionInfo {
 		EngineVersion:     rtogtor.EngineVersion,
 		SpecVersion:       rtogtor.SpecVersion,
 		IdentityAlgorithm: rtogtor.IdentityAlgorithm,
-		ProtocolVersions:  []string{}, // the SDK protocol arrives in Milestone 3
+		ProtocolVersions:  []string{spec.ProtocolVersion},
 	}
 	if info, ok := debug.ReadBuildInfo(); ok {
 		v.GoVersion = info.GoVersion
@@ -157,7 +159,7 @@ func newVersionCmd(opts *options) *cobra.Command {
 			fmt.Fprintf(out, "rtogtor engine     %s\n", v.EngineVersion)
 			fmt.Fprintf(out, "specification      %s\n", v.SpecVersion)
 			fmt.Fprintf(out, "identity algorithm %s\n", v.IdentityAlgorithm)
-			fmt.Fprintf(out, "protocol           none yet (planned for Milestone 3)\n")
+			fmt.Fprintf(out, "protocol           %s\n", strings.Join(v.ProtocolVersions, ", "))
 			if v.Commit != "" {
 				suffix := ""
 				if v.Modified {

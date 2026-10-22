@@ -14,13 +14,13 @@ suite for that version.
 
 | Engine version | Spec versions | Protocol versions | Status |
 |---|---|---|---|
-| 0.1.0-dev | 0.1.x | — (protocol arrives in Milestone 3) | In development |
+| 0.1.0-dev | 0.1.x | 1.0 | In development |
 
 ## SDKs
 
 | SDK | Version | Spec versions | Engine range | Conformance |
 |---|---|---|---|---|
 | Go (engine library) | 0.1.0-dev | 0.1.x | same module | Identity + value vectors and the e-commerce plan case pass |
-| C# | — | — | — | Not started (Milestone 3) |
+| C# (`RtoGtoR`) | 0.1.0-dev | 0.1.x | `>= 0.1.0-0, < 0.2.0`, protocol 1.x | All identity, value and plan cases pass |
 | Python | — | — | — | Not started (Milestone 4) |
 | TypeScript | — | — | — | Not started (Milestone 4) |

@@ -6,11 +6,23 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "specVersion", "runId", "mapping", "dryRun", "status", "batchSize", "source",
-    "destination", "streams", "attempts", "startedAt", "updatedAt"
+    "specVersion",
+    "runId",
+    "mapping",
+    "dryRun",
+    "status",
+    "batchSize",
+    "source",
+    "destination",
+    "streams",
+    "attempts",
+    "startedAt",
+    "updatedAt"
   ],
   "properties": {
-    "specVersion": { "type": "string" },
+    "specVersion": {
+      "type": "string"
+    },
     "runId": {
       "description": "UUIDv7 (time-ordered), lowercase hyphenated.",
       "type": "string",
@@ -19,31 +31,60 @@
     "mapping": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "hash"],
+      "required": [
+        "name",
+        "hash"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "hash": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        "name": {
+          "type": "string"
+        },
+        "hash": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
       }
     },
-    "dryRun": { "type": "boolean" },
-    "status": { "$ref": "#/$defs/status" },
-    "batchSize": { "type": "integer", "minimum": 1 },
-    "source": { "$ref": "#/$defs/endpoint" },
-    "destination": { "$ref": "#/$defs/endpoint" },
+    "dryRun": {
+      "type": "boolean"
+    },
+    "status": {
+      "$ref": "#/$defs/status"
+    },
+    "batchSize": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "source": {
+      "$ref": "#/$defs/endpoint"
+    },
+    "destination": {
+      "$ref": "#/$defs/endpoint"
+    },
     "streams": {
       "description": "One entry per load step of the plan, in plan order.",
       "type": "array",
-      "items": { "$ref": "#/$defs/stream" }
+      "items": {
+        "$ref": "#/$defs/stream"
+      }
     },
     "attempts": {
       "description": "Number of times the run was started or resumed.",
       "type": "integer",
       "minimum": 1
     },
-    "startedAt": { "$ref": "#/$defs/timestamp" },
-    "updatedAt": { "$ref": "#/$defs/timestamp" },
-    "completedAt": { "$ref": "#/$defs/timestamp" },
-    "lastError": { "$ref": "#/$defs/errorInfo" }
+    "startedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "updatedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "completedAt": {
+      "$ref": "#/$defs/timestamp"
+    },
+    "lastError": {
+      "$ref": "#/$defs/errorInfo"
+    }
   },
   "$defs": {
     "timestamp": {
@@ -52,40 +93,93 @@
       "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
     },
     "status": {
-      "enum": ["running", "succeeded", "succeeded-with-failures", "interrupted", "failed"]
+      "enum": [
+        "running",
+        "succeeded",
+        "succeeded-with-failures",
+        "interrupted",
+        "failed"
+      ]
     },
     "endpoint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["product"],
+      "required": [
+        "product"
+      ],
       "properties": {
-        "product": { "enum": ["postgresql", "neo4j"] },
-        "version": { "type": "string" },
-        "database": { "type": "string" }
+        "product": {
+          "enum": [
+            "postgresql",
+            "neo4j"
+          ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "database": {
+          "type": "string"
+        }
       }
     },
     "errorInfo": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "message"],
+      "required": [
+        "code",
+        "message"
+      ],
       "properties": {
-        "code": { "type": "string", "pattern": "^RTG-[A-Z]+-[0-9]{3}$" },
-        "message": { "type": "string" }
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
+        "message": {
+          "type": "string"
+        }
       }
     },
     "stream": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["stepId", "kind", "done", "cursor", "batches", "read", "written", "failed", "skipped", "nullKeys"],
+      "required": [
+        "stepId",
+        "kind",
+        "done",
+        "cursor",
+        "batches",
+        "read",
+        "written",
+        "failed",
+        "skipped",
+        "nullKeys"
+      ],
       "properties": {
-        "stepId": { "type": "string" },
-        "kind": { "enum": ["load-nodes", "load-relationships"] },
-        "done": { "type": "boolean" },
+        "stepId": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "load-nodes",
+            "load-relationships"
+          ]
+        },
+        "done": {
+          "type": "boolean"
+        },
         "cursor": {
           "description": "Canonical text of the key of the last row in the last committed batch, in key order (exclusive resume point). null before the first commit.",
           "oneOf": [
-            { "type": "null" },
-            { "type": "array", "minItems": 1, "items": { "type": "string" } }
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              }
+            }
           ]
         },
         "batches": {
@@ -93,9 +187,18 @@
           "type": "integer",
           "minimum": 0
         },
-        "read": { "type": "integer", "minimum": 0 },
-        "written": { "type": "integer", "minimum": 0 },
-        "failed": { "type": "integer", "minimum": 0 },
+        "read": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "written": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "failed": {
+          "type": "integer",
+          "minimum": 0
+        },
         "skipped": {
           "description": "Rows that produce no write by design, such as a NULL foreign key.",
           "type": "integer",
@@ -112,9 +215,18 @@
       "description": "One line of failures.jsonl. Lines whose batch was not committed (batch >= the stream's batches) are ignored, and a replayed batch's lines count once.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["stepId", "batch", "key", "code", "message", "at"],
+      "required": [
+        "stepId",
+        "batch",
+        "key",
+        "code",
+        "message",
+        "at"
+      ],
       "properties": {
-        "stepId": { "type": "string" },
+        "stepId": {
+          "type": "string"
+        },
         "batch": {
           "description": "Batch number, or -1 for aggregate failures not tied to a batch.",
           "type": "integer",
@@ -123,19 +235,39 @@
         "key": {
           "type": "array",
           "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["column", "type", "value"],
-            "properties": {
-              "column": { "type": "string" },
-              "type": { "type": "string" },
-              "value": { "type": "string" }
-            }
+            "$ref": "#/$defs/keyValue"
           }
         },
-        "code": { "type": "string", "pattern": "^RTG-[A-Z]+-[0-9]{3}$" },
-        "message": { "type": "string" },
-        "at": { "$ref": "#/$defs/timestamp" }
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
+        "message": {
+          "type": "string"
+        },
+        "at": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "keyValue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "column",
+        "type",
+        "value"
+      ],
+      "properties": {
+        "column": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
       }
     }
   }

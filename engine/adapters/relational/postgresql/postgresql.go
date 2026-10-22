@@ -56,6 +56,9 @@ func Open(ctx context.Context, connURL string) (*Adapter, error) {
 
 	conn, err := pgx.ConnectConfig(ctx, cfg)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err() // cancelled, not a connection failure
+		}
 		return nil, rtgerr.New(rtgerr.ConnFailed, "cannot connect to PostgreSQL: %s",
 			redact.Secrets(err.Error(), secrets...))
 	}
