@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TuanFaied/rtogtor/specs/ir.schema.json",
+  "title": "RtoGtoR canonical intermediate representation (draft)",
+  "description": "One IR record. An IR stream is a sequence of records (for example JSON lines) that starts with exactly one 'header' record. The IR is independent of both database models. Values are encoded per specs/values.md; their logical types come from the header. STATUS: draft for spec 0.1 — the execution engine (Milestone 2) is the first consumer and may refine it; additive changes only after 0.1.0 is released.",
+  "oneOf": [
+    { "$ref": "#/$defs/header" },
+    { "$ref": "#/$defs/entity" },
+    { "$ref": "#/$defs/relationship" },
+    { "$ref": "#/$defs/warning" }
+  ],
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "rtgId": {
+      "description": "rtg-id/v1 identity (specs/identity.md).",
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "typeInfo": {
+      "$ref": "schema-metadata.schema.json#/$defs/typeInfo"
+    },
+    "attributeDef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "typeInfo", "nullable"],
+      "properties": {
+        "name": { "$ref": "#/$defs/identifier" },
+        "typeInfo": { "$ref": "#/$defs/typeInfo" },
+        "nullable": { "type": "boolean" }
+      }
+    },
+    "attributes": {
+      "description": "Attribute values keyed by attribute name. JSON null means a known null; an omitted key means the attribute is absent (specs/values.md §3).",
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/identifier" }
+    },
+    "provenance": {
+      "description": "Where the record came from. Never contains credentials or host names.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product"],
+      "properties": {
+        "product": { "enum": ["postgresql", "neo4j"] },
+        "schema": { "type": "string" },
+        "table": { "type": "string" },
+        "labels": { "type": "array", "items": { "type": "string" } },
+        "relationshipType": { "type": "string" },
+        "nativeKey": {
+          "description": "The record's key in the source, as canonically encoded values in key order.",
+          "type": "array",
+          "items": true
+        }
+      }
+    },
+    "header": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordType", "specVersion", "identityAlgorithm", "entityTypes", "relationshipTypes"],
+      "properties": {
+        "recordType": { "const": "header" },
+        "specVersion": { "type": "string" },
+        "identityAlgorithm": { "const": "rtg-id/v1" },
+        "mappingHash": {
+          "description": "Lowercase hex SHA-256 of the RFC 8785 canonical JSON of the mapping.",
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "entityTypes": {
+          "description": "Ordered by name.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "labels", "key", "attributes"],
+            "properties": {
+              "name": { "$ref": "#/$defs/identifier" },
+              "labels": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/identifier" } },
+              "key": {
+                "description": "Attribute names forming the identity key, in identity order.",
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "#/$defs/identifier" }
+              },
+              "attributes": {
+                "description": "Ordered by name.",
+                "type": "array",
+                "items": { "$ref": "#/$defs/attributeDef" }
+              }
+            }
+          }
+        },
+        "relationshipTypes": {
+          "description": "Ordered by name.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "type", "from", "to", "attributes"],
+            "properties": {
+              "name": { "$ref": "#/$defs/identifier" },
+              "type": { "$ref": "#/$defs/identifier" },
+              "from": { "$ref": "#/$defs/identifier" },
+              "to": { "$ref": "#/$defs/identifier" },
+              "attributes": {
+                "type": "array",
+                "items": { "$ref": "#/$defs/attributeDef" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordType", "entityType", "rtgId", "attributes"],
+      "properties": {
+        "recordType": { "const": "entity" },
+        "entityType": { "$ref": "#/$defs/identifier" },
+        "rtgId": { "$ref": "#/$defs/rtgId" },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "relationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordType", "relationshipType", "from", "to", "attributes"],
+      "properties": {
+        "recordType": { "const": "relationship" },
+        "relationshipType": {
+          "description": "The mapping's relationship name (not the graph type).",
+          "$ref": "#/$defs/identifier"
+        },
+        "from": { "$ref": "#/$defs/rtgId" },
+        "to": { "$ref": "#/$defs/rtgId" },
+        "attributes": { "$ref": "#/$defs/attributes" },
+        "provenance": { "$ref": "#/$defs/provenance" }
+      }
+    },
+    "warning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recordType", "code", "message"],
+      "properties": {
+        "recordType": { "const": "warning" },
+        "code": { "type": "string", "pattern": "^RTG-[A-Z]+-[0-9]{3}$" },
+        "message": { "type": "string" },
+        "lossKind": { "enum": ["precision", "range", "representation", "structure"] },
+        "entityType": { "$ref": "#/$defs/identifier" },
+        "rtgId": { "$ref": "#/$defs/rtgId" },
+        "attribute": { "$ref": "#/$defs/identifier" }
+      }
+    }
+  }
+}

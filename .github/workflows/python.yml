@@ -1,0 +1,149 @@
+name: python
+
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - "sdks/python/**"
+      - "engine/**"
+      - "specs/**"
+      - "conformance/**"
+      - "examples/**"
+      - ".github/workflows/python.yml"
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: sdks/python
+    shell: bash
+
+jobs:
+  test:
+    name: test (${{ matrix.os }}, python ${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python: ["3.13"]
+        include:
+          - { os: ubuntu-latest, python: "3.10" }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e ".[dev]"
+      - name: Build the engine for this platform
+        run: python build_wheels.py --dev
+      - name: Ruff
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: mypy (strict)
+        run: mypy
+      - name: Tests (offline, engine, protocol, conformance, properties)
+        env:
+          RTOGTOR_CONFORMANCE_OUT: ${{ runner.temp }}/conformance-python-${{ runner.os }}-${{ matrix.python }}.json
+        run: python -m pytest
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: conformance-python-${{ runner.os }}-${{ matrix.python }}
+          path: ${{ runner.temp }}/conformance-python-${{ runner.os }}-${{ matrix.python }}.json
+          if-no-files-found: error
+          retention-days: 30
+
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rtogtor
+          # Throwaway passwords for containers that live only for this job.
+          POSTGRES_PASSWORD: rtogtor-ci
+          POSTGRES_DB: ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rtogtor -d ecommerce"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      neo4j:
+        image: neo4j:5-community
+        env:
+          NEO4J_AUTH: neo4j/rtogtor-ci-password
+        ports:
+          - 7474:7474
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p rtogtor-ci-password 'RETURN 1'"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 40
+          --health-start-period 20s
+    env:
+      RTOGTOR_TEST_POSTGRES_URL: postgres://rtogtor:rtogtor-ci@localhost:5432/ecommerce?sslmode=disable
+      RTOGTOR_TEST_NEO4J_URL: neo4j://neo4j:rtogtor-ci-password@localhost:7687
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Load the e-commerce example
+        env:
+          PGPASSWORD: rtogtor-ci
+        run: psql -h localhost -U rtogtor -d ecommerce -v ON_ERROR_STOP=1 -f ../../examples/ecommerce/schema.sql
+      - run: python -m pip install -e ".[dev]"
+      - run: python build_wheels.py --dev
+      - name: Integration tests
+        run: python -m pytest tests/test_integration.py
+
+  wheels:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - run: python -m pip install build wheel
+      - name: Build one wheel per platform
+        run: python build_wheels.py
+      - name: Check the wheels
+        run: |
+          ls -l ../../dist/python
+          test "$(ls ../../dist/python/*.whl | wc -l)" -eq 5
+          for w in ../../dist/python/*.whl; do
+            n=$(python -m zipfile -l "$w" | grep -c "rtogtor/_bin/rtogtor")
+            test "$n" -eq 1 || { echo "::error::$w must hold exactly one engine"; exit 1; }
+          done
+      - name: Smoke test the installed wheel (bundled engine)
+        run: python smoke.py
+      - uses: actions/upload-artifact@v7
+        with:
+          name: python-wheels
+          path: dist/python/*.whl
+          retention-days: 14

@@ -32,7 +32,7 @@ database, the identity and value vectors pass, and CI is green.
 | Bounded-memory test (150 000 × 2 KiB rows, heap < 96 MiB) | ✅ |
 | Junction-table relationships, natural identity, `time`/`interval` types | ⏳ See [limitations](limitations.md) |
 
-## Milestone 3 — Engine protocol + C# SDK *(implemented on branch `milestone-3/protocol-csharp`)*
+## Milestone 3 — Engine protocol + C# SDK *(implemented)*
 
 | Item | Status |
 |---|---|
@@ -44,9 +44,17 @@ database, the identity and value vectors pass, and CI is green.
 | NuGet package with engines for 5 platforms, smoke-tested as an installed package | ✅ (not yet published) |
 | Conformance runner protocol (`conformance/runner-protocol.md`) | ✅ |
 
-## Milestone 4 — Python and TypeScript SDKs
+## Milestone 4 — Python and TypeScript SDKs *(implemented on branch `milestone-4/python-typescript`)*
 
-PyPI wheels and npm per-platform packages, both passing conformance.
+| Item | Status |
+|---|---|
+| Codegen emitters: Pydantic v2 models (Python) and interfaces (TypeScript); schemas shipped with the generated code | ✅ |
+| Python SDK: `Migration`, `AsyncMigration`, `Engine`, `Mapping`, `Connection`, `RtoGtoRError`; Ctrl-C cancels | ✅ |
+| TypeScript SDK: `Migration`, `Engine`, `Mapping`, `Connection`, `RtoGtoRError`; `AbortSignal`, `await using` | ✅ |
+| Conformance (identity and value vectors, e-commerce plan case) through both SDKs | ✅ all pass |
+| Property tests: engine identities match independent implementations (Hypothesis, fast-check) | ✅ |
+| Five platform wheels; npm main package plus five platform packages; both smoke-tested as installed packages | ✅ (not yet published) |
+| CI for both SDKs (3 OSes, lint, types, tests, integration, packaging) | ✅ |
 
 ## Milestone 5 — Neo4j → PostgreSQL
 

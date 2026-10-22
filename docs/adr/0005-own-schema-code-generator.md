@@ -21,8 +21,9 @@ schema should produce the same shapes in every language.
 
 - `tools/codegen` (Go, no dependencies) reads `specs/*.json` into one
   language-neutral model of classes and typed fields, then emits each SDK
-  language from that model. Milestone 3 emits C#; Milestone 4 adds Python
-  and TypeScript emitters.
+  language from that model: C# (Milestone 3), Python and TypeScript
+  (Milestone 4). For SDKs that validate at run time, the generator also ships
+  the schemas next to the generated code.
 - Model rules, the same for every language:
   - every object definition becomes a class named after its `$defs` key or
     its location; names shared by two schemas get a schema prefix;

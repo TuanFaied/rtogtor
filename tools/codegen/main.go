@@ -13,6 +13,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -32,6 +33,8 @@ var roots = []Root{
 	{File: "run-state.schema.json", Pointer: "/$defs/failure", Name: "Failure"},
 	// "Stream" would clash with System.IO.Stream and similar names.
 	{File: "run-state.schema.json", Pointer: "/$defs/stream", Name: "StepState"},
+	// "Warning" would shadow Python's built-in Warning exception.
+	{File: "schema-metadata.schema.json", Pointer: "/$defs/warning", Name: "InspectionWarning"},
 	{File: "protocol.schema.json", Pointer: "/$defs/connection", Name: "Connection"},
 	{File: "protocol.schema.json", Pointer: "/$defs/handshakeResult", Name: "HandshakeResult"},
 	{File: "protocol.schema.json", Pointer: "/$defs/validateMappingResult", Name: "ValidateMappingResult"},
@@ -42,9 +45,20 @@ var roots = []Root{
 	{File: "protocol.schema.json", Pointer: "/$defs/error", Name: "ProtocolError"},
 }
 
-// targets maps each language to its output directory.
-var targets = map[string]string{
-	"csharp": "sdks/dotnet/src/RtoGtoR/Generated",
+// target is one SDK language's generated output.
+type target struct {
+	dir     string // relative to the repository root
+	pattern string // generated files in dir; others are left alone
+	emit    func(m *Model, codes []ErrorCode) (map[string]string, error)
+	// schemas copies specs/*.schema.json next to the generated code, for SDKs
+	// that validate documents at run time and cannot embed files at build.
+	schemas bool
+}
+
+var targets = []target{
+	{dir: "sdks/dotnet/src/RtoGtoR/Generated", pattern: "*.g.cs", emit: (*Model).emitCSharp},
+	{dir: "sdks/python/src/rtogtor/_generated", pattern: "*.*", emit: (*Model).emitPython, schemas: true},
+	{dir: "sdks/typescript/src/generated", pattern: "*.*", emit: (*Model).emitTypeScript, schemas: true},
 }
 
 func main() {
@@ -59,6 +73,7 @@ func main() {
 
 func run(repo string, check bool) error {
 	files := map[string]*object{}
+	rawSchemas := map[string]string{}
 	paths, err := filepath.Glob(filepath.Join(repo, "specs", "*.json"))
 	if err != nil {
 		return err
@@ -73,6 +88,9 @@ func run(repo string, check bool) error {
 			return fmt.Errorf("%s: %w", p, err)
 		}
 		files[filepath.Base(p)] = v.(*object)
+		if strings.HasSuffix(p, ".schema.json") {
+			rawSchemas[filepath.Base(p)] = string(b)
+		}
 	}
 	m := newModel(files)
 	if err := m.build(roots); err != nil {
@@ -80,18 +98,32 @@ func run(repo string, check bool) error {
 	}
 	codes := errorCodes(files["error-codes.json"])
 
-	cs, err := m.emitCSharp(codes)
-	if err != nil {
-		return err
+	var problems []string
+	for _, t := range targets {
+		files, err := t.emit(m, codes)
+		if err != nil {
+			return fmt.Errorf("%s: %w", t.dir, err)
+		}
+		if t.schemas {
+			for name, content := range rawSchemas {
+				files[name] = content
+			}
+		}
+		if err := sync(filepath.Join(repo, t.dir), t.pattern, files, check); err != nil {
+			problems = append(problems, err.Error())
+		}
 	}
-	return sync(filepath.Join(repo, targets["csharp"]), cs, check)
+	if len(problems) > 0 {
+		return errors.New(strings.Join(problems, "\n"))
+	}
+	return nil
 }
 
 // sync writes (or checks) the generated files of one target directory and
 // removes stale generated files.
-func sync(dir string, files map[string]string, check bool) error {
+func sync(dir, pattern string, files map[string]string, check bool) error {
 	var problems []string
-	existing, _ := filepath.Glob(filepath.Join(dir, "*.g.*"))
+	existing, _ := filepath.Glob(filepath.Join(dir, pattern))
 	want := map[string]bool{}
 	names := make([]string, 0, len(files))
 	for n := range files {

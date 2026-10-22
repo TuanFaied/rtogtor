@@ -78,6 +78,21 @@ public sealed record class GraphProperty
     public required bool Mandatory { get; init; }
 }
 
+public sealed record class InspectionWarning
+{
+    [JsonPropertyName("code")]
+    public required string Code { get; init; }
+
+    /// <summary>
+    /// Location, e.g. 'public.orders.shipping_point'.
+    /// </summary>
+    [JsonPropertyName("path")]
+    public required string Path { get; init; }
+
+    [JsonPropertyName("message")]
+    public required string Message { get; init; }
+}
+
 public sealed record class KeyConstraint
 {
     [JsonPropertyName("name")]
@@ -200,7 +215,7 @@ public sealed record class SchemaMetadata
     /// </summary>
     [JsonPropertyName("warnings")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public global::System.Collections.Generic.IReadOnlyList<Warning>? Warnings { get; init; }
+    public global::System.Collections.Generic.IReadOnlyList<InspectionWarning>? Warnings { get; init; }
 }
 
 public sealed record class SchemaMetadataDatabase
@@ -264,19 +279,4 @@ public sealed record class TypeInfo
     [JsonPropertyName("enumValues")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public global::System.Collections.Generic.IReadOnlyList<string>? EnumValues { get; init; }
-}
-
-public sealed record class Warning
-{
-    [JsonPropertyName("code")]
-    public required string Code { get; init; }
-
-    /// <summary>
-    /// Location, e.g. 'public.orders.shipping_point'.
-    /// </summary>
-    [JsonPropertyName("path")]
-    public required string Path { get; init; }
-
-    [JsonPropertyName("message")]
-    public required string Message { get; init; }
 }
