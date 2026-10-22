@@ -5,6 +5,18 @@ grouped by component.
 
 ## Unreleased
 
+### Milestone 2 (branch `milestone-2/pg-to-neo4j`)
+
+- Spec: `plan`, `report` and `run-state` schemas; 20 new error codes
+  (PLAN, EXEC, RUN, NEO, VERIFY); RFC 8785 canonical JSON, stricter on
+  inexact numbers
+- Engine: planner, Neo4j adapter, PostgreSQL keyset reads, executor with
+  checkpoints, failed-records store, retries and resume, verification,
+  reports
+- CLI: `plan`, `migrate` (`--dry-run`, `--resume`), `verify`, `report`,
+  `failures`
+- Docs: migration guide, recovery guarantees, known limitations
+
 ### Specification 0.1.0 (draft)
 
 - Canonical value encoding (`specs/values.md`)

@@ -19,6 +19,12 @@ var allConstants = []Code{
 	IDNullComponent, IDTypeNotPermitted, IDEmptyInput,
 	SchemaUnsupportedType, SchemaNoPrimaryKey, SchemaNotFound,
 	ConnFailed, ConnConfig, PGQuery,
+	PlanTableNotFound, PlanColumnNotFound, PlanTypeMismatch, PlanNullableKey,
+	PlanLossNotAllowed, PlanUnsupported, PlanForeignKeyTypes,
+	ExecConversion, ExecMissingEndpoint, ExecBatchFailed, ExecInterrupted,
+	RunNotFound, RunMappingChanged, RunCompleted, RunStateCorrupt,
+	NeoQuery,
+	VerifyMissingEntity, VerifyEntityCount, VerifyRelationCount, VerifyDanglingSource,
 	ProtoUnsupportedMajor, CLIUsage, Internal,
 }
 
