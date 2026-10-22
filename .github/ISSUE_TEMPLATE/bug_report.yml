@@ -1,0 +1,105 @@
+name: Bug report
+description: Something in the engine, CLI, spec or an SDK behaves incorrectly.
+title: "bug: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug.
+
+        **Security problems must not be reported here.** Use a
+        [private security advisory](https://github.com/TuanFaied/rtogtor/security/advisories/new)
+        instead (see [SECURITY.md](https://github.com/TuanFaied/rtogtor/blob/main/SECURITY.md)).
+
+        **Redact secrets.** Remove passwords, tokens and connection strings
+        from anything you paste below.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Engine (library)
+        - CLI (rtogtor)
+        - PostgreSQL adapter
+        - Neo4j adapter
+        - Specification (specs/)
+        - Conformance suite
+        - SDK (Go / Python / TypeScript / C#)
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, including any error code (`RTG-<AREA>-<NNN>`) reported.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: The commands you ran and a minimal schema / mapping that triggers the bug.
+      placeholder: |
+        1. Create table ...
+        2. Run `rtogtor inspect --dsn ...`
+        3. See error ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: mapping
+    attributes:
+      label: Mapping file (if relevant)
+      description: A minimal mapping that reproduces the problem.
+      render: yaml
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Output / logs
+      description: Relevant CLI output, plan or report. This will be formatted as code.
+      render: shell
+
+  - type: input
+    id: version
+    attributes:
+      label: RtoGtoR version or commit
+      description: Output of `rtogtor version`, or the commit SHA you built from.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Go version, database versions and how they run (Docker, managed, local).
+      placeholder: |
+        - OS: Ubuntu 24.04
+        - Go: 1.25.3
+        - PostgreSQL: 17.2 (Docker)
+        - Neo4j: 5.26
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and this has not been reported.
+          required: true
+        - label: I removed all credentials and secrets from this report.
+          required: true

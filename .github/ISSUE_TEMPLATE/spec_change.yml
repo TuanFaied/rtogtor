@@ -1,0 +1,66 @@
+name: Specification change
+description: Propose a change to the language-neutral specification in specs/.
+title: "spec: "
+labels: ["spec", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The specification is the source of truth for every implementation.
+        Changes here are reviewed carefully and significant ones need an
+        [ADR](https://github.com/TuanFaied/rtogtor/tree/main/docs/adr).
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Spec area
+      options:
+        - Canonical value encoding
+        - rtg_id identity
+        - Mapping schema / semantics
+        - Metadata schema
+        - IR schema
+        - Error codes
+        - Plan / report formats
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What the spec says today. Link the section or file.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+
+  - type: textarea
+    id: rationale
+    attributes:
+      label: Rationale
+      description: Why is this change needed? What breaks or is impossible without it?
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and migration
+      description: |
+        Does this change existing `rtg_id` values, encodings or error codes?
+        How are existing mappings, plans and run state affected?
+    validations:
+      required: true
+
+  - type: textarea
+    id: conformance
+    attributes:
+      label: Conformance impact
+      description: New or changed test vectors / cases in conformance/.
