@@ -2,22 +2,40 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/TuanFaied/rtogtor/specs/plan.schema.json",
   "title": "RtoGtoR execution plan",
-  "description": "Output of `rtogtor plan`. Built deterministically from a mapping, inspected source metadata and the destination's type rules: the same inputs give byte-identical RFC 8785 canonical JSON. Plans never contain credentials, host names or server versions. Steps are listed in execution order: identity constraints, then node loads in mapping order, then relationship loads in mapping order.",
+  "description": "Output of `rtogtor plan`. Built deterministically from a mapping, inspected metadata and the destination's type rules: the same inputs give byte-identical RFC 8785 canonical JSON. Plans never contain credentials, host names or server versions. Relational → graph steps run in order: identity constraints, node loads, relationship loads. Graph → relational steps run in order: table creation, row loads in foreign-key dependency order, deferred foreign-key updates.",
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "specVersion", "identityAlgorithm", "mapping", "direction", "source", "destination",
-    "identityProperty", "lossPolicy", "steps", "transformations", "warnings"
+    "specVersion",
+    "identityAlgorithm",
+    "mapping",
+    "direction",
+    "source",
+    "destination",
+    "identityProperty",
+    "lossPolicy",
+    "steps",
+    "transformations",
+    "warnings"
   ],
   "properties": {
-    "specVersion": { "type": "string" },
-    "identityAlgorithm": { "const": "rtg-id/v1" },
+    "specVersion": {
+      "type": "string"
+    },
+    "identityAlgorithm": {
+      "const": "rtg-id/v1"
+    },
     "mapping": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "hash"],
+      "required": [
+        "name",
+        "hash"
+      ],
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "hash": {
           "description": "Lowercase hex SHA-256 of the mapping's RFC 8785 canonical JSON, with defaults applied.",
           "type": "string",
@@ -25,180 +43,618 @@
         }
       }
     },
-    "direction": { "enum": ["relational-to-graph", "graph-to-relational"] },
-    "source": { "$ref": "#/$defs/endpoint" },
-    "destination": { "$ref": "#/$defs/endpoint" },
-    "identityProperty": { "$ref": "#/$defs/identifier" },
-    "lossPolicy": { "enum": ["strict", "flexible"] },
-    "steps": { "type": "array", "items": { "$ref": "#/$defs/step" } },
+    "direction": {
+      "enum": [
+        "relational-to-graph",
+        "graph-to-relational"
+      ]
+    },
+    "source": {
+      "$ref": "#/$defs/endpoint"
+    },
+    "destination": {
+      "$ref": "#/$defs/endpoint"
+    },
+    "identityProperty": {
+      "$ref": "#/$defs/identifier"
+    },
+    "lossPolicy": {
+      "enum": [
+        "strict",
+        "flexible"
+      ]
+    },
+    "steps": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    },
     "transformations": {
       "description": "Every lossy conversion the plan performs, in step order, with what allowed it.",
       "type": "array",
-      "items": { "$ref": "#/$defs/transformation" }
+      "items": {
+        "$ref": "#/$defs/transformation"
+      }
     },
     "warnings": {
       "type": "array",
-      "items": { "$ref": "#/$defs/diagnostic" }
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
     }
   },
   "$defs": {
-    "identifier": { "type": "string", "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
-    "logicalType": { "$ref": "mapping.schema.json#/$defs/logicalType" },
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "logicalType": {
+      "$ref": "mapping.schema.json#/$defs/logicalType"
+    },
     "endpoint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["product"],
+      "required": [
+        "product"
+      ],
       "properties": {
-        "product": { "enum": ["postgresql", "neo4j"] },
-        "database": { "type": "string" }
+        "product": {
+          "enum": [
+            "postgresql",
+            "neo4j"
+          ]
+        },
+        "database": {
+          "type": "string"
+        }
       }
     },
     "table": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["schema", "name"],
+      "required": [
+        "schema",
+        "name"
+      ],
       "properties": {
-        "schema": { "type": "string" },
-        "name": { "type": "string" }
+        "schema": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
       }
     },
     "field": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["column", "type", "nativeType", "nullable"],
+      "required": [
+        "column",
+        "type",
+        "nativeType",
+        "nullable"
+      ],
       "properties": {
-        "column": { "type": "string" },
-        "property": { "$ref": "#/$defs/identifier" },
-        "type": { "$ref": "#/$defs/logicalType" },
-        "element": { "$ref": "#/$defs/logicalType" },
-        "nativeType": { "type": "string" },
-        "nullable": { "type": "boolean" }
+        "column": {
+          "type": "string"
+        },
+        "property": {
+          "$ref": "#/$defs/identifier"
+        },
+        "type": {
+          "$ref": "#/$defs/logicalType"
+        },
+        "element": {
+          "$ref": "#/$defs/logicalType"
+        },
+        "nativeType": {
+          "type": "string"
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "scale": {
+          "description": "Destination decimal scale, when declared: values with more fractional digits lose precision.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "fractionalDigits": {
+          "description": "Destination fractional-second digits for temporal columns.",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        }
       }
     },
     "nodeRef": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["entity", "label"],
+      "required": [
+        "entity",
+        "label"
+      ],
       "properties": {
-        "entity": { "$ref": "#/$defs/identifier" },
-        "label": { "$ref": "#/$defs/identifier" }
+        "entity": {
+          "$ref": "#/$defs/identifier"
+        },
+        "label": {
+          "$ref": "#/$defs/identifier"
+        }
       }
     },
     "step": {
       "type": "object",
-      "required": ["id", "kind", "dependsOn"],
+      "required": [
+        "id",
+        "kind",
+        "dependsOn"
+      ],
       "properties": {
-        "id": { "type": "string" },
-        "kind": { "enum": ["ensure-identity-constraint", "load-nodes", "load-relationships"] },
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "ensure-identity-constraint",
+            "load-nodes",
+            "load-relationships",
+            "ensure-table",
+            "load-rows",
+            "update-foreign-keys"
+          ]
+        },
         "dependsOn": {
           "description": "IDs of steps that must complete first.",
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       },
       "oneOf": [
-        { "$ref": "#/$defs/constraintStep" },
-        { "$ref": "#/$defs/nodesStep" },
-        { "$ref": "#/$defs/relationshipsStep" }
+        {
+          "$ref": "#/$defs/constraintStep"
+        },
+        {
+          "$ref": "#/$defs/nodesStep"
+        },
+        {
+          "$ref": "#/$defs/relationshipsStep"
+        },
+        {
+          "$ref": "#/$defs/tableStep"
+        },
+        {
+          "$ref": "#/$defs/rowsStep"
+        },
+        {
+          "$ref": "#/$defs/foreignKeysStep"
+        }
       ]
     },
     "constraintStep": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "dependsOn", "label", "property"],
+      "required": [
+        "id",
+        "kind",
+        "dependsOn",
+        "label",
+        "property"
+      ],
       "properties": {
         "id": true,
         "dependsOn": true,
-        "kind": { "const": "ensure-identity-constraint" },
-        "label": { "$ref": "#/$defs/identifier" },
-        "property": { "$ref": "#/$defs/identifier" }
+        "kind": {
+          "const": "ensure-identity-constraint"
+        },
+        "label": {
+          "$ref": "#/$defs/identifier"
+        },
+        "property": {
+          "$ref": "#/$defs/identifier"
+        }
       }
     },
     "nodesStep": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "kind", "dependsOn", "entity", "table", "key", "properties", "labels"],
+      "required": [
+        "id",
+        "kind",
+        "dependsOn",
+        "entity",
+        "table",
+        "key",
+        "properties",
+        "labels"
+      ],
       "properties": {
         "id": true,
         "dependsOn": true,
-        "kind": { "const": "load-nodes" },
-        "entity": { "$ref": "#/$defs/identifier" },
-        "table": { "$ref": "#/$defs/table" },
+        "kind": {
+          "const": "load-nodes"
+        },
+        "entity": {
+          "$ref": "#/$defs/identifier"
+        },
+        "table": {
+          "$ref": "#/$defs/table"
+        },
         "key": {
           "description": "Read order, resume cursor and identity key, in mapping key order.",
           "type": "array",
           "minItems": 1,
-          "items": { "$ref": "#/$defs/field" }
+          "items": {
+            "$ref": "#/$defs/field"
+          }
         },
-        "properties": { "type": "array", "items": { "$ref": "#/$defs/field" } },
-        "labels": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/identifier" } }
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "labels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        }
       }
     },
     "relationshipsStep": {
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "id", "kind", "dependsOn", "entity", "table", "key", "relationship",
-        "relationshipType", "from", "to", "foreignKey"
+        "id",
+        "kind",
+        "dependsOn",
+        "entity",
+        "table",
+        "key",
+        "relationship",
+        "relationshipType",
+        "from",
+        "to",
+        "foreignKey"
       ],
       "properties": {
         "id": true,
         "dependsOn": true,
-        "kind": { "const": "load-relationships" },
+        "kind": {
+          "const": "load-relationships"
+        },
         "entity": {
           "description": "The entity whose table holds the foreign key; its table is read.",
           "$ref": "#/$defs/identifier"
         },
-        "table": { "$ref": "#/$defs/table" },
-        "key": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/field" } },
-        "properties": { "type": "array", "items": { "$ref": "#/$defs/field" } },
-        "relationship": { "$ref": "#/$defs/identifier" },
-        "relationshipType": { "$ref": "#/$defs/identifier" },
-        "from": { "$ref": "#/$defs/nodeRef" },
-        "to": { "$ref": "#/$defs/nodeRef" },
+        "table": {
+          "$ref": "#/$defs/table"
+        },
+        "key": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "relationship": {
+          "$ref": "#/$defs/identifier"
+        },
+        "relationshipType": {
+          "$ref": "#/$defs/identifier"
+        },
+        "from": {
+          "$ref": "#/$defs/nodeRef"
+        },
+        "to": {
+          "$ref": "#/$defs/nodeRef"
+        },
         "foreignKey": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["columns", "references", "direction"],
+          "required": [
+            "columns",
+            "references",
+            "direction"
+          ],
           "properties": {
             "columns": {
               "description": "Foreign-key columns, typed as the referenced key's fields, in key order.",
               "type": "array",
               "minItems": 1,
-              "items": { "$ref": "#/$defs/field" }
+              "items": {
+                "$ref": "#/$defs/field"
+              }
             },
-            "references": { "$ref": "#/$defs/identifier" },
-            "direction": { "enum": ["owner-to-referenced", "referenced-to-owner"] }
+            "references": {
+              "$ref": "#/$defs/identifier"
+            },
+            "direction": {
+              "enum": [
+                "owner-to-referenced",
+                "referenced-to-owner"
+              ]
+            }
           }
         },
-        "selfReference": { "type": "boolean" }
+        "selfReference": {
+          "type": "boolean"
+        }
       }
     },
     "transformation": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["property", "column", "type", "storedAs", "lossKind", "allowedBy"],
+      "required": [
+        "property",
+        "column",
+        "type",
+        "storedAs",
+        "lossKind",
+        "allowedBy"
+      ],
       "properties": {
-        "entity": { "$ref": "#/$defs/identifier" },
-        "relationship": { "$ref": "#/$defs/identifier" },
-        "property": { "$ref": "#/$defs/identifier" },
-        "column": { "type": "string" },
-        "type": { "$ref": "#/$defs/logicalType" },
-        "element": { "$ref": "#/$defs/logicalType" },
-        "storedAs": { "type": "string" },
-        "lossKind": { "enum": ["precision", "range", "representation", "structure"] },
-        "allowedBy": { "enum": ["flexible-policy", "allow-rule"] },
-        "reason": { "type": "string" }
+        "entity": {
+          "$ref": "#/$defs/identifier"
+        },
+        "relationship": {
+          "$ref": "#/$defs/identifier"
+        },
+        "property": {
+          "$ref": "#/$defs/identifier"
+        },
+        "column": {
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/$defs/logicalType"
+        },
+        "element": {
+          "$ref": "#/$defs/logicalType"
+        },
+        "storedAs": {
+          "type": "string"
+        },
+        "lossKind": {
+          "enum": [
+            "precision",
+            "range",
+            "representation",
+            "structure"
+          ]
+        },
+        "allowedBy": {
+          "enum": [
+            "flexible-policy",
+            "allow-rule"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
       }
     },
     "diagnostic": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "path", "message"],
+      "required": [
+        "code",
+        "path",
+        "message"
+      ],
       "properties": {
-        "code": { "type": "string", "pattern": "^RTG-[A-Z]+-[0-9]{3}$" },
-        "path": { "type": "string" },
-        "message": { "type": "string" }
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
+        "path": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      }
+    },
+    "tableStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "dependsOn",
+        "table",
+        "sql"
+      ],
+      "properties": {
+        "id": true,
+        "dependsOn": true,
+        "kind": {
+          "const": "ensure-table"
+        },
+        "table": {
+          "$ref": "#/$defs/table"
+        },
+        "sql": {
+          "description": "The CREATE TABLE IF NOT EXISTS statement that will run.",
+          "type": "string"
+        }
+      }
+    },
+    "foreignKeyLoad": {
+      "description": "How a foreign key is filled from a relationship in graph → relational migrations.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relationship",
+        "relationshipType",
+        "direction",
+        "references",
+        "referencedLabels",
+        "referencedKey",
+        "columns",
+        "deferred"
+      ],
+      "properties": {
+        "relationship": {
+          "$ref": "#/$defs/identifier"
+        },
+        "relationshipType": {
+          "$ref": "#/$defs/identifier"
+        },
+        "direction": {
+          "description": "From the owner node: 'outgoing' for (owner)-[:TYPE]->(referenced), 'incoming' for (referenced)-[:TYPE]->(owner).",
+          "enum": [
+            "outgoing",
+            "incoming"
+          ]
+        },
+        "references": {
+          "$ref": "#/$defs/identifier"
+        },
+        "referencedLabels": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "referencedKey": {
+          "description": "Key properties of the referenced node, in key order.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "columns": {
+          "description": "Destination foreign-key columns, in key order.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "deferred": {
+          "description": "True for self-references and cycles: filled by an update-foreign-keys step after all rows exist.",
+          "type": "boolean"
+        }
+      }
+    },
+    "rowsStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "dependsOn",
+        "entity",
+        "labels",
+        "table",
+        "key",
+        "properties"
+      ],
+      "properties": {
+        "id": true,
+        "dependsOn": true,
+        "entity": {
+          "$ref": "#/$defs/identifier"
+        },
+        "labels": {
+          "description": "Nodes must carry all of these labels.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "table": {
+          "$ref": "#/$defs/table"
+        },
+        "key": {
+          "description": "Read order, resume cursor and conflict target, in mapping key order.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "properties": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "foreignKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/foreignKeyLoad"
+          },
+          "description": "Foreign keys filled while inserting (non-deferred). Absent when there are none."
+        },
+        "kind": {
+          "const": "load-rows"
+        }
+      }
+    },
+    "foreignKeysStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "kind",
+        "dependsOn",
+        "entity",
+        "labels",
+        "table",
+        "key",
+        "foreignKeys"
+      ],
+      "properties": {
+        "id": true,
+        "dependsOn": true,
+        "entity": {
+          "$ref": "#/$defs/identifier"
+        },
+        "labels": {
+          "description": "Nodes must carry all of these labels.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/identifier"
+          }
+        },
+        "table": {
+          "$ref": "#/$defs/table"
+        },
+        "key": {
+          "description": "Read order, resume cursor and conflict target, in mapping key order.",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "foreignKeys": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/foreignKeyLoad"
+          }
+        },
+        "kind": {
+          "const": "update-foreign-keys"
+        }
       }
     }
   }

@@ -282,3 +282,59 @@ such numbers, because `int64` and `decimal` values are encoded as strings.
 | `bytes` | ByteArray | no |
 | `json` | String (canonical JSON) | `representation` |
 | `array` | List | `structure` if elements contain `null` (Neo4j lists cannot hold `null`) |
+
+### Neo4j → logical type (graph → relational)
+
+A mapped property is read as its declared logical type from these Neo4j
+property types (`ReadableFrom` in the engine). Any other stored type fails
+that record (`RTG-EXEC-001`); the planner warns when inspection finds one
+(`RTG-PLAN-011`) and rejects a property that never has a readable type
+(`RTG-PLAN-003`).
+
+| Logical type | Readable from | Key properties must be |
+|---|---|---|
+| `bool` | Boolean | Boolean |
+| `int64` | Long | Long |
+| `decimal` | String (decimal text), Long | String |
+| `float64` | Double, Long (only if exactly representable) | — (not a key type) |
+| `string` | String | String |
+| `uuid` | String | String |
+| `date` | Date | Date |
+| `timestamp` | LocalDateTime | LocalDateTime |
+| `timestamptz` | DateTime (any zone; converted to UTC) | DateTime |
+| `bytes` | ByteArray | — (byte arrays cannot be ordered) |
+| `json` | String (a JSON document) | — |
+| `array` | the element's types as arrays (`LongArray`, `StringArray`, …) | — |
+
+Key properties need one fixed type so that key-ordered reads compare like
+with like. Nodes whose key property is missing or has another type are not
+read; they are counted and recorded as one aggregate `RTG-ID-001` record.
+
+### Logical type → PostgreSQL (graph → relational)
+
+Existing columns must have the mapping's logical type (`RTG-PLAN-003`).
+Values are assigned through PostgreSQL's own casts, so a column's length,
+range and constraint checks apply (a rejected row is `RTG-PG-002`). Columns
+of tables the plan creates (`destination.createTables`) get these types:
+
+| Logical type | Created column type |
+|---|---|
+| `bool` | `boolean` |
+| `int64` | `bigint` |
+| `decimal` | `numeric` (no scale limit) |
+| `float64` | `double precision` |
+| `string` | `text` |
+| `uuid` | `uuid` |
+| `date` | `date` |
+| `timestamp` / `timestamptz` | `timestamp(6) without time zone` / `timestamp(6) with time zone` |
+| `bytes` | `bytea` |
+| `json` | `jsonb` |
+| `array` | the element's type with `[]` |
+
+**Precision.** Neo4j keeps nanoseconds and decimal strings of any scale;
+PostgreSQL keeps microseconds and a `numeric(p,s)` column keeps `s`
+fractional digits. A value with more fractional digits than its column keeps
+would be rounded, which is a `precision` loss. It is checked per value:
+under the strict policy without a `precision` allow rule, such a value fails
+its record (`RTG-EXEC-007`); otherwise it is written, rounded by PostgreSQL,
+and the plan lists the transformation. Values that fit are never affected.

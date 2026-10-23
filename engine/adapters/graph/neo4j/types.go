@@ -69,6 +69,56 @@ func (TypeSupport) StoredAs(t, elem ir.LogicalType) string {
 	return storage[t].as
 }
 
+// readable lists the Neo4j property types each logical type can be read from.
+var readable = map[ir.LogicalType][]string{
+	ir.TypeBool:        {"Boolean"},
+	ir.TypeInt64:       {"Long"},
+	ir.TypeDecimal:     {"String", "Long"},
+	ir.TypeFloat64:     {"Double", "Long"},
+	ir.TypeString:      {"String"},
+	ir.TypeUUID:        {"String"},
+	ir.TypeDate:        {"Date"},
+	ir.TypeTimestamp:   {"LocalDateTime"},
+	ir.TypeTimestampTZ: {"DateTime"},
+	ir.TypeBytes:       {"ByteArray"},
+	ir.TypeJSON:        {"String"},
+}
+
+// ReadableFrom implements graph.TypeSupport.
+func (TypeSupport) ReadableFrom(t, elem ir.LogicalType) []string {
+	if t != ir.TypeArray {
+		return readable[t]
+	}
+	if elem == ir.TypeBytes || elem == ir.TypeJSON {
+		return nil
+	}
+	var out []string
+	for _, r := range readable[elem] {
+		out = append(out, r+"Array")
+	}
+	return out
+}
+
+// keyTypes are the property types key properties must have. They match what
+// the forward direction writes (decimal and uuid as strings), and Cypher can
+// order them. Byte arrays cannot be ordered, so bytes keys are excluded.
+var keyTypes = map[ir.LogicalType]string{
+	ir.TypeBool:        "Boolean",
+	ir.TypeInt64:       "Long",
+	ir.TypeDecimal:     "String",
+	ir.TypeString:      "String",
+	ir.TypeUUID:        "String",
+	ir.TypeDate:        "Date",
+	ir.TypeTimestamp:   "LocalDateTime",
+	ir.TypeTimestampTZ: "DateTime",
+}
+
+// KeyStoredAs implements graph.TypeSupport.
+func (TypeSupport) KeyStoredAs(t ir.LogicalType) (string, bool) {
+	s, ok := keyTypes[t]
+	return s, ok
+}
+
 // EncodeProperties implements graph.Adapter. Null values become nil, which
 // MergeNodes uses to remove stale properties.
 func (a *Adapter) EncodeProperties(props []graph.Property) (graph.Encoded, error) {

@@ -35,22 +35,48 @@ type (
 // set.
 const DefaultStateDir = runstate.DefaultDir
 
-// Inspect returns the schema metadata of a PostgreSQL database. Empty schemas
-// means "public".
-func Inspect(ctx context.Context, source Connection, schemas ...string) (*SchemaMetadata, error) {
-	src, err := openSource(ctx, source)
-	if err != nil {
-		return nil, err
+// Inspect returns the schema metadata of a database: tables of the given
+// PostgreSQL schemas (empty means "public"), or the labels and relationship
+// types of a Neo4j database.
+func Inspect(ctx context.Context, c Connection, schemas ...string) (*SchemaMetadata, error) {
+	if c.err != nil {
+		return nil, c.err
 	}
-	defer func() { _ = src.Close() }()
-	return src.Inspect(ctx, relational.InspectOptions{Schemas: schemas})
+	switch c.product {
+	case ProductPostgreSQL:
+		a, err := postgresql.Open(ctx, c.url)
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = a.Close() }()
+		return a.Inspect(ctx, relational.InspectOptions{Schemas: schemas})
+	case ProductNeo4j:
+		a, err := neo4j.Open(ctx, c.url, c.database)
+		if err != nil {
+			return nil, err
+		}
+		defer func() { _ = a.Close() }()
+		return a.Inspect(ctx, graph.InspectOptions{})
+	}
+	return nil, rtgerr.New(rtgerr.ConnConfig, "no connection given")
 }
 
 // PlanFromMetadata plans a mapping against previously inspected metadata,
-// without connecting to any database. Problems are returned as an
-// rtgerr.List; warnings are in the plan.
-func PlanFromMetadata(m *Mapping, meta *SchemaMetadata) (*Plan, error) {
-	p, issues := planning.Build(planning.Input{Mapping: m, Source: meta, Destination: neo4j.TypeSupport{}})
+// without connecting to any database. source is the inspected source;
+// destination is the inspected relational destination, which graph →
+// relational mappings need (its existing tables) and relational → graph
+// mappings ignore. Problems are returned as an rtgerr.List; warnings are in
+// the plan.
+func PlanFromMetadata(m *Mapping, source, destination *SchemaMetadata) (*Plan, error) {
+	in := planning.Input{Mapping: m, Source: source, Destination: neo4j.TypeSupport{}}
+	if m.Direction == mapping.GraphToRelational {
+		if destination == nil {
+			return nil, rtgerr.New(rtgerr.ConnConfig, "a graph → relational plan needs the inspected destination database")
+		}
+		in.DestinationMeta = destination
+		in.SourceTypes, in.DestinationTypes = neo4j.TypeSupport{}, postgresql.TypeSupport{}
+	}
+	p, issues := planning.Build(in)
 	if issues.HasErrors() {
 		return nil, issues
 	}
@@ -74,15 +100,19 @@ type RunOptions struct {
 
 // Migration migrates data from a source to a destination with a mapping.
 // Connections are opened on first use and closed by Close.
+//
+// The mapping's direction decides the roles: PostgreSQL → Neo4j for
+// relational-to-graph, Neo4j → PostgreSQL for graph-to-relational.
 type Migration struct {
 	source, destination Connection
 	mapping             *Mapping
-	src                 *postgresql.Adapter
-	dst                 *neo4j.Adapter
+	pg                  *postgresql.Adapter
+	neo                 *neo4j.Adapter
 }
 
-// NewMigration creates a migration. The destination may be the zero
-// Connection for dry runs.
+// NewMigration creates a migration. For relational → graph mappings the
+// destination may be the zero Connection for dry runs; graph → relational
+// planning always inspects the destination.
 func NewMigration(source, destination Connection, m *Mapping) *Migration {
 	return &Migration{source: source, destination: destination, mapping: m}
 }
@@ -90,65 +120,81 @@ func NewMigration(source, destination Connection, m *Mapping) *Migration {
 // Close closes any open connections.
 func (m *Migration) Close() error {
 	var first error
-	if m.src != nil {
-		first = m.src.Close()
-		m.src = nil
+	if m.pg != nil {
+		first = m.pg.Close()
+		m.pg = nil
 	}
-	if m.dst != nil {
-		if err := m.dst.Close(); err != nil && first == nil {
+	if m.neo != nil {
+		if err := m.neo.Close(); err != nil && first == nil {
 			first = err
 		}
-		m.dst = nil
+		m.neo = nil
 	}
 	return first
 }
 
-func openSource(ctx context.Context, c Connection) (*postgresql.Adapter, error) {
+func (m *Migration) postgres(ctx context.Context, role string, c Connection) (*postgresql.Adapter, error) {
+	if m.pg != nil {
+		return m.pg, nil
+	}
 	if c.err != nil {
 		return nil, c.err
 	}
 	if c.product != ProductPostgreSQL {
-		return nil, rtgerr.New(rtgerr.ConnConfig, "the source must be a PostgreSQL connection, got %s", c)
+		return nil, rtgerr.New(rtgerr.ConnConfig, "the %s must be a PostgreSQL connection, got %s", role, c)
 	}
-	return postgresql.Open(ctx, c.url)
+	a, err := postgresql.Open(ctx, c.url)
+	if err != nil {
+		return nil, err
+	}
+	m.pg = a
+	return a, nil
 }
 
-func (m *Migration) sourceAdapter(ctx context.Context) (*postgresql.Adapter, error) {
-	if m.src == nil {
-		src, err := openSource(ctx, m.source)
-		if err != nil {
-			return nil, err
-		}
-		m.src = src
+func (m *Migration) graph(ctx context.Context, role string, c Connection, database string) (*neo4j.Adapter, error) {
+	if m.neo != nil {
+		return m.neo, nil
 	}
-	return m.src, nil
-}
-
-func (m *Migration) destinationAdapter(ctx context.Context, database string) (*neo4j.Adapter, error) {
-	if m.dst != nil {
-		return m.dst, nil
-	}
-	c := m.destination
 	if c.err != nil {
 		return nil, c.err
 	}
 	if c.product != ProductNeo4j {
-		return nil, rtgerr.New(rtgerr.ConnConfig, "the destination must be a Neo4j connection, got %s", c)
+		return nil, rtgerr.New(rtgerr.ConnConfig, "the %s must be a Neo4j connection, got %s", role, c)
 	}
 	if database == "" {
 		database = c.database
 	}
-	dst, err := neo4j.Open(ctx, c.url, database)
+	a, err := neo4j.Open(ctx, c.url, database)
 	if err != nil {
 		return nil, err
 	}
-	m.dst = dst
-	return dst, nil
+	m.neo = a
+	return a, nil
 }
 
-// schemasOf lists the source schemas a mapping reads.
+// reverseAdapters opens both sides of a graph → relational migration.
+func (m *Migration) reverseAdapters(ctx context.Context, sourceDatabase string) (*neo4j.Adapter, *postgresql.Adapter, error) {
+	g, err := m.graph(ctx, "source", m.source, sourceDatabase)
+	if err != nil {
+		return nil, nil, err
+	}
+	if m.destination.IsZero() {
+		return nil, nil, rtgerr.New(rtgerr.ConnConfig, "a graph → relational migration needs a destination connection, even for dry runs: planning inspects its tables")
+	}
+	pg, err := m.postgres(ctx, "destination", m.destination)
+	if err != nil {
+		return nil, nil, err
+	}
+	return g, pg, nil
+}
+
+// schemasOf lists the relational schemas a mapping reads or writes.
 func schemasOf(m *Mapping) []string {
-	set := map[string]bool{m.Source.Schema: true}
+	side := m.Source
+	if m.Direction == mapping.GraphToRelational {
+		side = m.Destination
+	}
+	set := map[string]bool{side.Schema: true}
 	for _, e := range m.Entities {
 		if e.Schema != "" {
 			set[e.Schema] = true
@@ -162,24 +208,44 @@ func schemasOf(m *Mapping) []string {
 	return out
 }
 
-// Plan inspects the source and plans the migration. It never writes.
+func endpointOf(doc *SchemaMetadata) runstate.Endpoint {
+	return runstate.Endpoint{Product: doc.Database.Product, Version: doc.Database.Version, Database: doc.Database.Name}
+}
+
+// Plan inspects the databases and plans the migration. It never writes.
 func (m *Migration) Plan(ctx context.Context) (*Plan, error) {
-	p, _, err := m.plan(ctx)
+	p, _, _, err := m.plan(ctx)
 	return p, err
 }
 
-func (m *Migration) plan(ctx context.Context) (*Plan, runstate.Endpoint, error) {
-	src, err := m.sourceAdapter(ctx)
+func (m *Migration) plan(ctx context.Context) (*Plan, runstate.Endpoint, runstate.Endpoint, error) {
+	var none runstate.Endpoint
+	if m.mapping.Direction == mapping.GraphToRelational {
+		g, pg, err := m.reverseAdapters(ctx, m.mapping.Source.Database)
+		if err != nil {
+			return nil, none, none, err
+		}
+		gdoc, err := g.Inspect(ctx, graph.InspectOptions{})
+		if err != nil {
+			return nil, none, none, err
+		}
+		ddoc, err := pg.Inspect(ctx, relational.InspectOptions{Schemas: schemasOf(m.mapping)})
+		if err != nil {
+			return nil, none, none, err
+		}
+		p, err := PlanFromMetadata(m.mapping, gdoc, ddoc)
+		return p, endpointOf(gdoc), endpointOf(ddoc), err
+	}
+	src, err := m.postgres(ctx, "source", m.source)
 	if err != nil {
-		return nil, runstate.Endpoint{}, err
+		return nil, none, none, err
 	}
 	doc, err := src.Inspect(ctx, relational.InspectOptions{Schemas: schemasOf(m.mapping)})
 	if err != nil {
-		return nil, runstate.Endpoint{}, err
+		return nil, none, none, err
 	}
-	info := runstate.Endpoint{Product: doc.Database.Product, Version: doc.Database.Version, Database: doc.Database.Name}
-	p, err := PlanFromMetadata(m.mapping, doc)
-	return p, info, err
+	p, err := PlanFromMetadata(m.mapping, doc, nil)
+	return p, endpointOf(doc), none, err
 }
 
 // Run executes the migration (or a dry run) and returns its report. When the
@@ -198,13 +264,9 @@ func (m *Migration) Run(ctx context.Context, opts RunOptions) (*Report, error) {
 	if err != nil {
 		return nil, rtgerr.New(rtgerr.Internal, "encoding the mapping: %v", err)
 	}
-	src, err := m.sourceAdapter(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	var plan *Plan
-	var srcInfo runstate.Endpoint
+	var srcInfo, dstInfo runstate.Endpoint
 	if opts.ResumeRunID != "" {
 		// A resumed run continues the plan its checkpoints refer to.
 		plan, err = loadPlan(store, opts.ResumeRunID)
@@ -215,32 +277,54 @@ func (m *Migration) Run(ctx context.Context, opts RunOptions) (*Report, error) {
 			return nil, rtgerr.New(rtgerr.RunMappingChanged,
 				"run %s was started with a different mapping (hash %s, this mapping %s)", opts.ResumeRunID, plan.Mapping.Hash[:12], hash[:12])
 		}
-	} else if plan, srcInfo, err = m.plan(ctx); err != nil {
+	} else if plan, srcInfo, dstInfo, err = m.plan(ctx); err != nil {
 		return nil, err
 	}
 
-	var dst execution.Destination = dryRunDestination{}
-	dstInfo := runstate.Endpoint{Product: ProductNeo4j, Database: plan.Destination.Database}
-	if !m.destination.IsZero() {
-		g, err := m.destinationAdapter(ctx, plan.Destination.Database)
+	exec := execution.Options{
+		Plan: plan, MappingJSON: mappingJSON, Store: store,
+		BatchSize: opts.BatchSize, DryRun: opts.DryRun, ResumeRunID: opts.ResumeRunID, Progress: opts.Progress,
+	}
+	if plan.Direction == mapping.GraphToRelational {
+		g, pg, err := m.reverseAdapters(ctx, plan.Source.Database)
 		if err != nil {
 			return nil, err
 		}
-		info, err := g.ServerInfo(ctx)
+		if srcInfo.Product == "" {
+			info, err := g.ServerInfo(ctx)
+			if err != nil {
+				return nil, err
+			}
+			srcInfo = runstate.Endpoint{Product: info.Product, Version: info.Version, Database: info.Database}
+		}
+		exec.GraphSource, exec.RelationalDestination = g, pg
+		exec.SourceInfo, exec.DestinationInfo = srcInfo, dstInfo
+	} else {
+		src, err := m.postgres(ctx, "source", m.source)
 		if err != nil {
 			return nil, err
 		}
-		dstInfo = runstate.Endpoint{Product: info.Product, Version: info.Version, Database: info.Database}
-		dst = g
-	} else if !opts.DryRun {
-		return nil, rtgerr.New(rtgerr.ConnConfig, "a destination connection is required unless DryRun is set")
+		var dst execution.Destination = dryRunDestination{}
+		dstInfo = runstate.Endpoint{Product: ProductNeo4j, Database: plan.Destination.Database}
+		if !m.destination.IsZero() {
+			g, err := m.graph(ctx, "destination", m.destination, plan.Destination.Database)
+			if err != nil {
+				return nil, err
+			}
+			info, err := g.ServerInfo(ctx)
+			if err != nil {
+				return nil, err
+			}
+			dstInfo = runstate.Endpoint{Product: info.Product, Version: info.Version, Database: info.Database}
+			dst = g
+		} else if !opts.DryRun {
+			return nil, rtgerr.New(rtgerr.ConnConfig, "a destination connection is required unless DryRun is set")
+		}
+		exec.Source, exec.Destination = src, dst
+		exec.SourceInfo, exec.DestinationInfo = srcInfo, dstInfo
 	}
 
-	st, runErr := execution.Run(ctx, execution.Options{
-		Plan: plan, MappingJSON: mappingJSON, Source: src, Destination: dst,
-		SourceInfo: srcInfo, DestinationInfo: dstInfo, Store: store,
-		BatchSize: opts.BatchSize, DryRun: opts.DryRun, ResumeRunID: opts.ResumeRunID, Progress: opts.Progress,
-	})
+	st, runErr := execution.Run(ctx, exec)
 	if st == nil {
 		return nil, runErr
 	}
@@ -269,17 +353,27 @@ func (m *Migration) Verify(ctx context.Context, runID, stateDir string) (*Verifi
 	if err != nil {
 		return nil, err
 	}
-	src, err := m.sourceAdapter(ctx)
-	if err != nil {
-		return nil, err
-	}
-	dst, err := m.destinationAdapter(ctx, plan.Destination.Database)
-	if err != nil {
-		return nil, err
-	}
-	v, err := verification.Verify(ctx, plan, src, dst, st.BatchSize)
-	if err != nil {
-		return nil, err
+	var v *Verification
+	if plan.Direction == mapping.GraphToRelational {
+		g, pg, err := m.reverseAdapters(ctx, plan.Source.Database)
+		if err != nil {
+			return nil, err
+		}
+		if v, err = verification.VerifyReverse(ctx, plan, g, pg, st.BatchSize); err != nil {
+			return nil, err
+		}
+	} else {
+		src, err := m.postgres(ctx, "source", m.source)
+		if err != nil {
+			return nil, err
+		}
+		dst, err := m.graph(ctx, "destination", m.destination, plan.Destination.Database)
+		if err != nil {
+			return nil, err
+		}
+		if v, err = verification.Verify(ctx, plan, src, dst, st.BatchSize); err != nil {
+			return nil, err
+		}
 	}
 	rep, err := LoadReport(store.Dir, runID)
 	if err != nil {

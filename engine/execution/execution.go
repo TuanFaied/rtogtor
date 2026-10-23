@@ -7,7 +7,8 @@
 //   - Each batch is atomic in the destination.
 //   - The checkpoint and the batch's failed records are recorded only after
 //     the batch commits, so a crash replays at most the uncommitted batch.
-//   - Writes are idempotent (MERGE on rtg_id), so replaying is safe: a run
+//   - Writes are idempotent (MERGE on rtg_id; INSERT … ON CONFLICT and
+//     UPDATE by key for graph → relational), so replaying is safe: a run
 //     is at-least-once with effectively-once results.
 //   - Memory is bounded: the reader runs at most two batches ahead.
 package execution
@@ -24,6 +25,7 @@ import (
 	"github.com/TuanFaied/rtogtor/engine/adapters/relational"
 	"github.com/TuanFaied/rtogtor/engine/internal/canonjson"
 	"github.com/TuanFaied/rtogtor/engine/ir"
+	"github.com/TuanFaied/rtogtor/engine/mapping"
 	"github.com/TuanFaied/rtogtor/engine/planning"
 	"github.com/TuanFaied/rtogtor/engine/reporting"
 	"github.com/TuanFaied/rtogtor/engine/rtgerr"
@@ -90,13 +92,17 @@ type Progress struct {
 type Options struct {
 	Plan *planning.Plan
 	// MappingJSON is the mapping's canonical JSON, stored with a new run.
-	MappingJSON     []byte
-	Source          Source
-	Destination     Destination
-	SourceInfo      runstate.Endpoint
-	DestinationInfo runstate.Endpoint
-	Store           *runstate.Store
-	BatchSize       int
+	MappingJSON []byte
+	Source      Source
+	Destination Destination
+	// GraphSource and RelationalDestination replace Source and Destination
+	// for graph → relational plans.
+	GraphSource           GraphSource
+	RelationalDestination RelationalDestination
+	SourceInfo            runstate.Endpoint
+	DestinationInfo       runstate.Endpoint
+	Store                 *runstate.Store
+	BatchSize             int
 	// DryRun reads and converts everything but writes nothing to the
 	// destination (not even constraints).
 	DryRun bool
@@ -141,7 +147,7 @@ func start(opts Options) (*runstate.State, error) {
 			Streams: []runstate.Stream{}, Attempts: 1, StartedAt: now,
 		}
 		for _, s := range opts.Plan.Steps {
-			if s.Kind == planning.StepNodes || s.Kind == planning.StepRelationships {
+			if s.Kind.Loads() {
 				st.Streams = append(st.Streams, runstate.Stream{StepID: s.ID, Kind: string(s.Kind)})
 			}
 		}
@@ -187,6 +193,9 @@ type runner struct {
 }
 
 func (r *runner) run(ctx context.Context) error {
+	if r.opts.Plan.Direction == mapping.GraphToRelational {
+		return r.runReverse(ctx)
+	}
 	if !r.st.DryRun {
 		for _, s := range r.opts.Plan.Steps {
 			if s.Kind != planning.StepConstraint {

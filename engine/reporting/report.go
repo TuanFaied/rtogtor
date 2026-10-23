@@ -77,10 +77,12 @@ type Verification struct {
 
 // EntityCheck compares one entity's rows and nodes.
 type EntityCheck struct {
-	Entity           string `json:"entity"`
-	Label            string `json:"label"`
-	SourceRows       int64  `json:"sourceRows"`
-	DestinationNodes int64  `json:"destinationNodes"`
+	Entity string `json:"entity"`
+	Label  string `json:"label"`
+	// SourceCount counts source records (rows or nodes) with a non-null key.
+	SourceCount int64 `json:"sourceCount"`
+	// DestinationCount counts destination records (nodes or rows).
+	DestinationCount int64 `json:"destinationCount"`
 	// Missing counts source rows whose identity has no node.
 	Missing int64 `json:"missing"`
 	// MissingKeys lists up to 10 missing rows' keys (canonical text).
@@ -189,7 +191,7 @@ func (r *Report) VerificationText() string {
 	if v := r.Verification; v != nil {
 		fmt.Fprintf(&sb, "Verification %s at %s\n", v.Status, v.CheckedAt)
 		for _, e := range v.Entities {
-			fmt.Fprintf(&sb, "  %-20s rows %-8d nodes %-8d missing %d\n", e.Entity, e.SourceRows, e.DestinationNodes, e.Missing)
+			fmt.Fprintf(&sb, "  %-20s source %-8d destination %-8d missing %d\n", e.Entity, e.SourceCount, e.DestinationCount, e.Missing)
 		}
 		for _, rc := range v.Relationships {
 			fmt.Fprintf(&sb, "  (:%s)-[:%s]->(:%s) expected %d, found %d, dangling in source %d\n",

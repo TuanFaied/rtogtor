@@ -14,6 +14,7 @@ supported for a spec version only when its harness reports every case as
 | `vectors/values/valid/<NNN>-<type>` | the NNN-th (0-based, three digits) entry of `vectors/values.json` → `valid` | `canonicalize` returns exactly `canonical` |
 | `vectors/values/invalid/<NNN>-<type>` | the NNN-th entry of `vectors/values.json` → `invalid` | the SDK raises its error type with exactly `errorCode` |
 | `cases/ecommerce/plan` | `examples/ecommerce/mapping.yaml` loaded by the SDK's mapping loader; `cases/ecommerce/expected-schema-metadata.json` | planning against the metadata returns a plan whose **typed model**, serialized and canonicalized with RFC 8785, equals `cases/ecommerce/expected-plan.json` byte for byte |
+| `cases/ecommerce-reverse/plan` | `examples/ecommerce/mapping-reverse.yaml`; `cases/ecommerce-reverse/source-metadata.json` (the graph the forward mapping writes) and `destination-metadata.json` (an empty schema) | the graph-to-relational plan, through the typed model and RFC 8785, equals `cases/ecommerce-reverse/expected-plan.json` byte for byte |
 
 The plan case checks three things at once: the SDK's YAML reading matches the
 engine's (the mapping hash is part of the plan), the protocol transports the

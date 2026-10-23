@@ -30,11 +30,11 @@ databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned f
 | Canonical value encoding (Go engine) | ✅ Implemented, tested against shared vectors |
 | `rtg_id` identity derivation (Go engine) | ✅ Implemented, tested against shared vectors |
 | Mapping loading + validation (JSON/YAML) | ✅ Implemented (schema + semantic checks) |
-| CLI: `rtogtor version`, `validate`, `inspect` | ✅ Implemented |
+| CLI: `rtogtor version`, `validate`, `inspect` (PostgreSQL and Neo4j) | ✅ Implemented |
 | Adapter interfaces (relational, graph) | 🟡 Defined, unstable |
 | PostgreSQL schema inspection (`rtogtor inspect`) | ✅ Implemented, integration-tested |
 | PostgreSQL → Neo4j migration: `plan`, `migrate` (`--dry-run`, `--resume`), `verify`, `report`, `failures` | ✅ Implemented, end-to-end tested |
-| Neo4j → PostgreSQL migration | ⏳ Planned (Milestone 5) |
+| Neo4j → PostgreSQL migration: same commands, `direction: graph-to-relational` | ✅ Implemented, round-trip tested ([guide](docs/migration-guide.md#the-other-way-neo4j--postgresql)) |
 | Go SDK (the engine library, `github.com/TuanFaied/rtogtor/engine`) | ✅ Implemented ([docs](docs/sdk/go.md)) |
 | Engine ↔ SDK protocol 1.0 (`rtogtor serve --stdio`) | ✅ Implemented, schema-validated in tests |
 | C# SDK (`RtoGtoR` on NuGet, bundles the engine for 5 platforms) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/dotnet.md)) |

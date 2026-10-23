@@ -8,8 +8,7 @@ import (
 
 // ExecutableDirections lists the directions this engine version can execute.
 // Valid mappings in other directions produce an RTG-MAP-010 warning.
-// GraphToRelational arrives with Milestone 5.
-var ExecutableDirections = map[Direction]bool{RelationalToGraph: true}
+var ExecutableDirections = map[Direction]bool{RelationalToGraph: true, GraphToRelational: true}
 
 // validateSemantics runs checks that JSON Schema cannot express.
 func validateSemantics(m *Mapping) rtgerr.List {

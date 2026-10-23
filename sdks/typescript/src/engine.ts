@@ -63,7 +63,7 @@ export class Engine implements AsyncDisposable {
     )) as ValidateMappingResult;
   }
 
-  /** Inspects a PostgreSQL database's schema (read-only). */
+  /** Inspects a PostgreSQL or Neo4j database's schema (read-only). `schemas` apply to PostgreSQL. */
   async inspect(
     source: Connection,
     options: CallOptions & { schemas?: string[] } = {},
@@ -75,9 +75,21 @@ export class Engine implements AsyncDisposable {
     )) as SchemaMetadata;
   }
 
-  /** Plans a mapping against inspected metadata, without connecting to any database. */
-  async plan(mapping: Mapping, sourceMetadata: SchemaMetadata, options: CallOptions = {}): Promise<Plan> {
-    return (await this.session.call("plan", { mapping: mapping.document, sourceMetadata }, options)) as Plan;
+  /**
+   * Plans a mapping against inspected metadata, without connecting to any database.
+   * Graph-to-relational mappings also need `destinationMetadata` (the existing tables).
+   */
+  async plan(
+    mapping: Mapping,
+    sourceMetadata: SchemaMetadata,
+    options: CallOptions & { destinationMetadata?: SchemaMetadata } = {},
+  ): Promise<Plan> {
+    const { destinationMetadata, ...call } = options;
+    return (await this.session.call(
+      "plan",
+      { mapping: mapping.document, sourceMetadata, destinationMetadata },
+      call,
+    )) as Plan;
   }
 
   /** Reads a run's report. */

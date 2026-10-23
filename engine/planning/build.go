@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/TuanFaied/rtogtor/engine/adapters/graph"
+	"github.com/TuanFaied/rtogtor/engine/adapters/relational"
 	"github.com/TuanFaied/rtogtor/engine/ir"
 	"github.com/TuanFaied/rtogtor/engine/mapping"
 	"github.com/TuanFaied/rtogtor/engine/rtgerr"
@@ -15,10 +16,19 @@ import (
 // Input holds everything a plan is built from.
 type Input struct {
 	Mapping *mapping.Mapping
-	// Source is the inspected metadata of every schema the mapping reads.
+	// Source is the inspected source metadata: relational schemas for
+	// relational → graph, labels and relationship types for graph → relational.
 	Source *schemameta.Document
-	// Destination describes how the destination stores logical types.
+	// Destination describes how a graph destination stores logical types
+	// (relational → graph).
 	Destination graph.TypeSupport
+	// DestinationMeta is the inspected relational destination
+	// (graph → relational): the tables that already exist.
+	DestinationMeta *schemameta.Document
+	// SourceTypes and DestinationTypes describe a graph source and a
+	// relational destination (graph → relational).
+	SourceTypes      graph.TypeSupport
+	DestinationTypes relational.TypeSupport
 }
 
 // Build validates the mapping against the source and destination and
@@ -47,17 +57,22 @@ func (b *builder) build() (*Plan, rtgerr.List) {
 	}
 
 	// Features this engine version cannot execute yet.
-	if m.Direction != mapping.RelationalToGraph {
-		b.add(rtgerr.PlanUnsupported, "/direction", "%s migrations are not implemented yet (planned for Milestone 5)", m.Direction)
-	}
 	if m.Identity.Strategy != mapping.StrategyHash {
 		b.add(rtgerr.PlanUnsupported, "/identity/strategy", "identity strategy %q is not implemented yet; use \"hash\"", m.Identity.Strategy)
 	}
-	if b.in.Source == nil || b.in.Source.Kind != schemameta.KindRelational {
-		return nil, rtgerr.List{rtgerr.New(rtgerr.Internal, "planning needs relational source metadata")}
-	}
 	if b.issues.HasErrors() {
 		return nil, b.issues
+	}
+	if m.Direction == mapping.GraphToRelational {
+		return b.buildReverse(&Plan{
+			SpecVersion: spec.Version, IdentityAlgorithm: spec.IdentityAlgorithm,
+			Mapping: MappingRef{Name: m.Name, Hash: hash}, Direction: m.Direction,
+			IdentityProperty: m.Identity.Property, LossPolicy: m.Policies.Loss,
+			Steps: []Step{}, Transformations: []Transformation{}, Warnings: []Diagnostic{},
+		})
+	}
+	if b.in.Source == nil || b.in.Source.Kind != schemameta.KindRelational {
+		return nil, rtgerr.List{rtgerr.New(rtgerr.Internal, "planning needs relational source metadata")}
 	}
 
 	p := &Plan{
@@ -388,6 +403,22 @@ func (p *Plan) Text() string {
 			}
 			fmt.Fprintf(&sb, "Create (:%s)-[:%s]->(:%s) from %s.%s(%s)%s\n",
 				s.From.Label, s.RelationshipType, s.To.Label, s.Table.Schema, s.Table.Name, columns(s.ForeignKey.Columns), self)
+		case StepTable:
+			fmt.Fprintf(&sb, "Create table %s.%s if it does not exist:\n", s.Table.Schema, s.Table.Name)
+			for _, line := range strings.Split(s.SQL, "\n") {
+				fmt.Fprintf(&sb, "      %s\n", line)
+			}
+		case StepRows:
+			fks := ""
+			for _, l := range s.ForeignKeys {
+				fks += fmt.Sprintf(", %s from :%s", columns(l.Columns), l.RelationshipType)
+			}
+			fmt.Fprintf(&sb, "Write (:%s) nodes as rows of %s.%s, keyed by (%s), %d columns%s\n",
+				strings.Join(s.Labels, ":"), s.Table.Schema, s.Table.Name, columns(s.Key), len(s.Properties), fks)
+		case StepForeignKeys:
+			l := s.ForeignKeys[0]
+			fmt.Fprintf(&sb, "Fill %s.%s(%s) from :%s relationships [deferred: self-reference or cycle]\n",
+				s.Table.Schema, s.Table.Name, columns(l.Columns), l.RelationshipType)
 		}
 	}
 	if len(p.Transformations) > 0 {

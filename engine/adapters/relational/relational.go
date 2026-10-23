@@ -1,9 +1,8 @@
 // Package relational defines the interface every relational database adapter
 // implements. All database-specific behavior lives behind it.
 //
-// STABILITY: unstable until 1.0. Milestone 2 adds keyset reading and the
-// counts used by verification; batched writes arrive with the
-// graph → relational direction (Milestone 5).
+// STABILITY: unstable until 1.0. Adapters read in key order (relational →
+// graph) and write batched upserts and updates (graph → relational).
 package relational
 
 import (
@@ -12,6 +11,20 @@ import (
 	"github.com/TuanFaied/rtogtor/engine/ir"
 	"github.com/TuanFaied/rtogtor/engine/schemameta"
 )
+
+// TypeSupport describes how a relational database declares columns for
+// logical types. It needs no connection, so planning can run before
+// connecting.
+type TypeSupport interface {
+	// Product is the database product name, e.g. "postgresql".
+	Product() string
+	// ColumnType returns the column type used when the plan creates a
+	// table, or "" if the type cannot be stored.
+	ColumnType(t, elem ir.LogicalType) string
+	// DefaultFractionalDigits is the fractional-second precision of the
+	// temporal column types ColumnType returns.
+	DefaultFractionalDigits() int
+}
 
 // Capabilities reports what an adapter supports, so the planner can reject
 // mappings it cannot execute instead of failing mid-run.
@@ -94,6 +107,27 @@ type ReferenceCount struct {
 	Dangling int64
 }
 
+// UpsertBatch inserts rows, or updates the existing row with the same key.
+type UpsertBatch struct {
+	Table Table
+	// Key columns name the conflict target: a primary key or unique
+	// constraint on exactly these columns. They must be among Columns.
+	Key     []string
+	Columns []Column
+	// Rows hold one value per column, in Columns order.
+	Rows [][]ir.Value
+}
+
+// UpdateBatch sets columns of existing rows found by key. Rows whose key
+// does not exist are not changed.
+type UpdateBatch struct {
+	Table   Table
+	Key     []Column
+	Columns []Column
+	// Rows hold the key values followed by the column values.
+	Rows [][]ir.Value
+}
+
 // Adapter is a connection to one relational database.
 //
 // Implementations must never include credentials or connection strings in
@@ -114,6 +148,18 @@ type Adapter interface {
 	CountNullKeys(ctx context.Context, table Table, key []string) (int64, error)
 	// CountReferences counts matched and dangling references.
 	CountReferences(ctx context.Context, ref Reference) (ReferenceCount, error)
+	// ExecDDL runs a schema statement from a plan, such as
+	// CREATE TABLE IF NOT EXISTS.
+	ExecDDL(ctx context.Context, sql string) error
+	// UpsertRows writes one batch in a single transaction. A batch rejected
+	// because of its data fails with RTG-PG-002, so the caller can retry its
+	// rows one at a time to find the rejected ones.
+	UpsertRows(ctx context.Context, batch UpsertBatch) error
+	// UpdateRows updates one batch in a single transaction. Errors are as
+	// for UpsertRows.
+	UpdateRows(ctx context.Context, batch UpdateBatch) error
+	// MissingKeys returns the keys (in canonical text) that have no row.
+	MissingKeys(ctx context.Context, table Table, key []Column, keys [][]ir.Value) ([][]ir.Value, error)
 	// Close releases the connection.
 	Close() error
 }
