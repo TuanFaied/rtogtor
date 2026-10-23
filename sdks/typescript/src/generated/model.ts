@@ -68,6 +68,11 @@ export interface EntityCheck {
   missing: number;
   /** Up to 10 keys of missing rows, as canonical text in key order. */
   missingKeys: string[][];
+  /**
+   * Present when values were compared (verify with values): records whose compared values
+   * differ between source and destination.
+   */
+  valueMismatches?: number;
 }
 
 export interface ErrorInfo {
@@ -206,6 +211,17 @@ export interface Label {
   name: string;
   /** Observed or declared properties, ordered by name. */
   properties: GraphProperty[];
+  /**
+   * Range indexes on nodes with this label (including those backing uniqueness constraints),
+   * ordered by property list. Absent when the inspector could not list indexes.
+   */
+  indexes?: LabelIndexesItem[];
+}
+
+export interface LabelIndexesItem {
+  /** Indexed properties, in index order. */
+  properties: string[];
+  unique: boolean;
 }
 
 export interface LossAllowance {
@@ -481,6 +497,8 @@ export interface Report {
   completedAt?: string;
   attempts: number;
   batchSize: number;
+  retry?: RetryPolicy;
+  retries?: number;
   source: RunStateEndpoint;
   destination: RunStateEndpoint;
   /** Counts per load step, in plan order. */
@@ -520,6 +538,18 @@ export interface ReportTotals {
 }
 
 /**
+ * How transient errors (retryable error codes) are retried. Each attempt waits a random time
+ * between half and all of the current backoff, which starts at initialBackoffMs and doubles
+ * up to maxBackoffMs.
+ */
+export interface RetryPolicy {
+  /** Attempts per operation, including the first. 1 disables retries. */
+  maxAttempts: number;
+  initialBackoffMs: number;
+  maxBackoffMs: number;
+}
+
+/**
  * State of one migration run, stored as runs/<runId>/state.json in the state directory
  * (default .rtogtor). Any engine or SDK can resume a run from this file together with the
  * run's mapping.json and plan.json. Run state never contains credentials or host names.
@@ -540,6 +570,16 @@ export interface RunState {
   streams: StepState[];
   /** Number of times the run was started or resumed. */
   attempts: number;
+  /**
+   * The retry policy of the current attempt. Absent in state written before engine 0.1
+   * Milestone 6.
+   */
+  retry?: RetryPolicy;
+  /**
+   * Retried operations over all attempts of the run (each retry of a failed operation counts
+   * once).
+   */
+  retries?: number;
   startedAt: string;
   updatedAt: string;
   completedAt?: string;

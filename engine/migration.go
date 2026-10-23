@@ -29,7 +29,11 @@ type (
 	Failure        = runstate.Failure
 	SchemaMetadata = schemameta.Document
 	Progress       = execution.Progress
+	RetryPolicy    = execution.RetryPolicy
 )
+
+// DefaultRetry is the retry policy used when RunOptions.Retry is unset.
+var DefaultRetry = execution.DefaultRetry
 
 // DefaultStateDir is where run state is kept unless RunOptions.StateDir is
 // set.
@@ -96,6 +100,9 @@ type RunOptions struct {
 	StateDir string
 	// Progress, if set, is called after every committed batch.
 	Progress func(Progress)
+	// Retry is the retry policy for transient errors. Zero keeps a resumed
+	// run's policy, or uses DefaultRetry.
+	Retry RetryPolicy
 }
 
 // Migration migrates data from a source to a destination with a mapping.
@@ -281,9 +288,14 @@ func (m *Migration) Run(ctx context.Context, opts RunOptions) (*Report, error) {
 		return nil, err
 	}
 
+	fault, err := execution.FaultFromEnv()
+	if err != nil {
+		return nil, err
+	}
 	exec := execution.Options{
 		Plan: plan, MappingJSON: mappingJSON, Store: store,
 		BatchSize: opts.BatchSize, DryRun: opts.DryRun, ResumeRunID: opts.ResumeRunID, Progress: opts.Progress,
+		Retry: opts.Retry, Fault: fault,
 	}
 	if plan.Direction == mapping.GraphToRelational {
 		g, pg, err := m.reverseAdapters(ctx, plan.Source.Database)
@@ -335,9 +347,24 @@ func (m *Migration) Run(ctx context.Context, opts RunOptions) (*Report, error) {
 	return rep, runErr
 }
 
+// VerifyOptions configures Migration.VerifyWith.
+type VerifyOptions struct {
+	// StateDir holds run state (default ".rtogtor").
+	StateDir string
+	// Values also compares every migrated value, not only counts and keys
+	// (RTG-VERIFY-005). It reads all mapped data once more.
+	Values bool
+}
+
 // Verify compares a finished run's source and destination and adds the
 // result to the run's report.
 func (m *Migration) Verify(ctx context.Context, runID, stateDir string) (*Verification, error) {
+	return m.VerifyWith(ctx, runID, VerifyOptions{StateDir: stateDir})
+}
+
+// VerifyWith is Verify with options.
+func (m *Migration) VerifyWith(ctx context.Context, runID string, opts VerifyOptions) (*Verification, error) {
+	stateDir := opts.StateDir
 	store := &runstate.Store{Dir: stateDir}
 	if store.Dir == "" {
 		store.Dir = DefaultStateDir
@@ -362,6 +389,11 @@ func (m *Migration) Verify(ctx context.Context, runID, stateDir string) (*Verifi
 		if v, err = verification.VerifyReverse(ctx, plan, g, pg, st.BatchSize); err != nil {
 			return nil, err
 		}
+		if opts.Values {
+			if err := verification.CompareValuesReverse(ctx, plan, g, pg, st.BatchSize, v); err != nil {
+				return nil, err
+			}
+		}
 	} else {
 		src, err := m.postgres(ctx, "source", m.source)
 		if err != nil {
@@ -373,6 +405,11 @@ func (m *Migration) Verify(ctx context.Context, runID, stateDir string) (*Verifi
 		}
 		if v, err = verification.Verify(ctx, plan, src, dst, st.BatchSize); err != nil {
 			return nil, err
+		}
+		if opts.Values {
+			if err := verification.CompareValues(ctx, plan, src, dst, st.BatchSize, v); err != nil {
+				return nil, err
+			}
 		}
 	}
 	rep, err := LoadReport(store.Dir, runID)

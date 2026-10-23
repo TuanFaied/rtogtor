@@ -109,6 +109,15 @@ type ForeignKey struct {
 type Label struct {
 	Name       string          `json:"name"`
 	Properties []GraphProperty `json:"properties"`
+	// Indexes lists range indexes on the label; nil when they could not be
+	// listed (unknown), empty when there are none.
+	Indexes *[]LabelIndex `json:"indexes,omitempty"`
+}
+
+// LabelIndex is a range index on nodes with a label.
+type LabelIndex struct {
+	Properties []string `json:"properties"`
+	Unique     bool     `json:"unique"`
 }
 
 // RelationshipType is a graph relationship type.

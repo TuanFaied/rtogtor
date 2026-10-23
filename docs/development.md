@@ -70,8 +70,9 @@ Integration tests run only with the `integration` build tag and require
 missing. Each test creates and drops its own `rtg_it_*`/`rtg_e2e_*` schema and uses
 Neo4j labels with a random suffix, removed afterwards. Point them only at
 disposable databases such as the Compose containers. The end-to-end suite
-includes a bounded-memory test that loads 150 000 rows (about 25 seconds);
-skip it with `-short`.
+includes bounded-memory tests that move 150 000 records each way (about two
+minutes together); skip them with `-short`, or scale them with
+`RTOGTOR_PERF_ROWS` ([performance.md](performance.md)).
 
 ```bash
 export RTOGTOR_TEST_POSTGRES_URL="$SOURCE_URL"
@@ -87,6 +88,29 @@ with `-update`. Review the diff by hand before committing it:
 go test -tags integration ./adapters/relational/postgresql/ -update
 ```
 
+## Fault injection
+
+`RTOGTOR_TEST_FAULT` makes an engine fail at chosen points of a real run,
+in any language's tests. It holds faults separated by `|`, each a list of
+`key=value` pairs separated by `;`:
+
+| Key | Meaning | Default |
+|---|---|---|
+| `step` | Plan step ID, or `*` | `*` |
+| `batch` | Batch number (0 for schema statements), or `*` | `*` |
+| `point` | `before-write`, `write` (inside the retried write, before every attempt), `before-checkpoint` (after the commit), `after-checkpoint` | required |
+| `times` | How often the fault fires in this engine process | 1 |
+| `code` | Error code returned | `RTG-EXEC-003` (retryable) for `write`, else `RTG-EXEC-004` |
+
+```bash
+# Stop after batch 1 of the CONTAINS relationships commits, before its checkpoint:
+RTOGTOR_TEST_FAULT='step=relationships:OrderContainsItem;batch=1;point=before-checkpoint' rtogtor migrate …
+# Two transient write failures, absorbed by the retry policy:
+RTOGTOR_TEST_FAULT='step=nodes:Customer;point=write;times=2' rtogtor migrate …
+```
+
+It can only make runs fail. Never set it in production.
+
 ## Lint and security checks
 
 ```bash
@@ -94,6 +118,13 @@ go vet ./...
 gofmt -l .
 go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run --build-tags integration ./...
 go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+```
+
+Fuzz targets cover every untrusted input ([security.md](security.md)). Run
+one for longer than CI does with, for example:
+
+```bash
+go test ./protocol/ -run '^$' -fuzz '^FuzzServe$' -fuzztime 10m
 ```
 
 ## After changing `specs/*.json`

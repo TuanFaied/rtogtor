@@ -20,6 +20,25 @@ public sealed class RunOptions
 
     /// <summary>Receives a report after every committed batch.</summary>
     public IProgress<Progress>? Progress { get; init; }
+
+    /// <summary>
+    /// Retry policy for transient errors. Null keeps a resumed run's policy, or uses the engine
+    /// default (3 attempts, 200 ms to 5 s backoff).
+    /// </summary>
+    public RetryPolicy? Retry { get; init; }
+}
+
+/// <summary>Options for <see cref="Migration.VerifyAsync(string, VerifyOptions, CancellationToken)"/>.</summary>
+public sealed class VerifyOptions
+{
+    /// <summary>Directory holding run state (engine default <c>.rtogtor</c>).</summary>
+    public string? StateDirectory { get; init; }
+
+    /// <summary>
+    /// Also compare every migrated value, not only counts and keys (RTG-VERIFY-005). Reads all
+    /// mapped data once more.
+    /// </summary>
+    public bool Values { get; init; }
 }
 
 /// <summary>
@@ -120,12 +139,18 @@ public sealed class Migration : IAsyncDisposable
             batchSize = options.BatchSize,
             resumeRunId = options.ResumeRunId,
             stateDir = options.StateDirectory,
+            retry = options.Retry,
         }, cancellationToken, onEvent).ConfigureAwait(false);
     }
 
     /// <summary>Compares a run's source and destination; the result is added to the run's report.</summary>
-    public async Task<Verification> VerifyAsync(string runId, string? stateDirectory = null, CancellationToken cancellationToken = default)
+    public Task<Verification> VerifyAsync(string runId, string? stateDirectory = null, CancellationToken cancellationToken = default) =>
+        VerifyAsync(runId, new VerifyOptions { StateDirectory = stateDirectory }, cancellationToken);
+
+    /// <inheritdoc cref="VerifyAsync(string, string?, CancellationToken)"/>
+    public async Task<Verification> VerifyAsync(string runId, VerifyOptions options, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(options);
         if (_destination is null)
         {
             throw new InvalidOperationException("Verification needs a destination connection.");
@@ -136,7 +161,8 @@ public sealed class Migration : IAsyncDisposable
             runId,
             source = _wireSource,
             destination = _wireDestination,
-            stateDir = stateDirectory,
+            stateDir = options.StateDirectory,
+            values = options.Values,
         }, cancellationToken).ConfigureAwait(false);
     }
 

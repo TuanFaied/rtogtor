@@ -5,19 +5,35 @@
   "description": "Output of `rtogtor inspect`. Describes a database's structure in database-independent terms so every SDK sees identical metadata. Arrays are ordered as documented on each field so that canonical JSON is deterministic.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["specVersion", "kind", "database"],
+  "required": [
+    "specVersion",
+    "kind",
+    "database"
+  ],
   "properties": {
     "specVersion": {
       "type": "string",
       "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
     },
-    "kind": { "enum": ["relational", "graph"] },
+    "kind": {
+      "enum": [
+        "relational",
+        "graph"
+      ]
+    },
     "database": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["product"],
+      "required": [
+        "product"
+      ],
       "properties": {
-        "product": { "enum": ["postgresql", "neo4j"] },
+        "product": {
+          "enum": [
+            "postgresql",
+            "neo4j"
+          ]
+        },
         "version": {
           "description": "Server version string as reported by the server.",
           "type": "string"
@@ -31,37 +47,79 @@
     "schemas": {
       "description": "Relational schemas, ordered by name (byte order).",
       "type": "array",
-      "items": { "$ref": "#/$defs/schema" }
+      "items": {
+        "$ref": "#/$defs/schema"
+      }
     },
     "labels": {
       "description": "Graph node labels, ordered by name.",
       "type": "array",
-      "items": { "$ref": "#/$defs/label" }
+      "items": {
+        "$ref": "#/$defs/label"
+      }
     },
     "relationshipTypes": {
       "description": "Graph relationship types, ordered by name.",
       "type": "array",
-      "items": { "$ref": "#/$defs/relationshipType" }
+      "items": {
+        "$ref": "#/$defs/relationshipType"
+      }
     },
     "warnings": {
       "description": "Objects that were found but cannot be represented, ordered by code, then path.",
       "type": "array",
-      "items": { "$ref": "#/$defs/warning" }
+      "items": {
+        "$ref": "#/$defs/warning"
+      }
     }
   },
   "allOf": [
     {
-      "if": { "properties": { "kind": { "const": "relational" } } },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "relational"
+          }
+        }
+      },
       "then": {
-        "required": ["schemas"],
-        "not": { "anyOf": [ { "required": ["labels"] }, { "required": ["relationshipTypes"] } ] }
+        "required": [
+          "schemas"
+        ],
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "labels"
+              ]
+            },
+            {
+              "required": [
+                "relationshipTypes"
+              ]
+            }
+          ]
+        }
       }
     },
     {
-      "if": { "properties": { "kind": { "const": "graph" } } },
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "graph"
+          }
+        }
+      },
       "then": {
-        "required": ["labels", "relationshipTypes"],
-        "not": { "required": ["schemas"] }
+        "required": [
+          "labels",
+          "relationshipTypes"
+        ],
+        "not": {
+          "required": [
+            "schemas"
+          ]
+        }
       }
     }
   ],
@@ -70,68 +128,125 @@
       "description": "Type metadata as defined in specs/values.md §4.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
         "type": {
           "description": "Logical type, or null when the native type has no logical equivalent in this spec version.",
           "oneOf": [
             {
               "enum": [
-                "bool", "int64", "decimal", "float64", "string", "uuid", "date",
-                "time", "timetz", "timestamp", "timestamptz", "duration", "bytes",
-                "json", "array"
+                "bool",
+                "int64",
+                "decimal",
+                "float64",
+                "string",
+                "uuid",
+                "date",
+                "time",
+                "timetz",
+                "timestamp",
+                "timestamptz",
+                "duration",
+                "bytes",
+                "json",
+                "array"
               ]
             },
-            { "type": "null" }
+            {
+              "type": "null"
+            }
           ]
         },
-        "nativeType": { "type": "string" },
-        "precision": { "type": "integer", "minimum": 1 },
-        "scale": { "type": "integer", "minimum": 0 },
-        "fractionalDigits": { "type": "integer", "minimum": 0, "maximum": 9 },
-        "maxLength": { "type": "integer", "minimum": 1 },
-        "element": { "$ref": "#/$defs/typeInfo" },
+        "nativeType": {
+          "type": "string"
+        },
+        "precision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "scale": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fractionalDigits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "maxLength": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "element": {
+          "$ref": "#/$defs/typeInfo"
+        },
         "enumValues": {
           "description": "Allowed values of an enum type, in declaration order.",
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "tables"],
+      "required": [
+        "name",
+        "tables"
+      ],
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "tables": {
           "description": "Tables ordered by name.",
           "type": "array",
-          "items": { "$ref": "#/$defs/table" }
+          "items": {
+            "$ref": "#/$defs/table"
+          }
         }
       }
     },
     "table": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "columns", "foreignKeys", "uniqueConstraints"],
+      "required": [
+        "name",
+        "columns",
+        "foreignKeys",
+        "uniqueConstraints"
+      ],
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "columns": {
           "description": "Columns ordered by ordinal position.",
           "type": "array",
-          "items": { "$ref": "#/$defs/column" }
+          "items": {
+            "$ref": "#/$defs/column"
+          }
         },
-        "primaryKey": { "$ref": "#/$defs/keyConstraint" },
+        "primaryKey": {
+          "$ref": "#/$defs/keyConstraint"
+        },
         "foreignKeys": {
           "description": "Foreign keys ordered by constraint name.",
           "type": "array",
-          "items": { "$ref": "#/$defs/foreignKey" }
+          "items": {
+            "$ref": "#/$defs/foreignKey"
+          }
         },
         "uniqueConstraints": {
           "description": "Unique constraints ordered by name.",
           "type": "array",
-          "items": { "$ref": "#/$defs/keyConstraint" }
+          "items": {
+            "$ref": "#/$defs/keyConstraint"
+          }
         },
         "estimatedRows": {
           "description": "Planner statistics estimate; informative only and excluded from conformance comparisons.",
@@ -143,83 +258,191 @@
     "column": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "ordinal", "nullable", "typeInfo"],
+      "required": [
+        "name",
+        "ordinal",
+        "nullable",
+        "typeInfo"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "ordinal": { "type": "integer", "minimum": 1 },
-        "nullable": { "type": "boolean" },
-        "hasDefault": { "type": "boolean" },
+        "name": {
+          "type": "string"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "nullable": {
+          "type": "boolean"
+        },
+        "hasDefault": {
+          "type": "boolean"
+        },
         "generated": {
           "description": "True for identity or generated columns.",
           "type": "boolean"
         },
-        "typeInfo": { "$ref": "#/$defs/typeInfo" }
+        "typeInfo": {
+          "$ref": "#/$defs/typeInfo"
+        }
       }
     },
     "keyConstraint": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "columns"],
+      "required": [
+        "name",
+        "columns"
+      ],
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "columns": {
           "description": "Columns in constraint order.",
           "type": "array",
           "minItems": 1,
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "foreignKey": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "columns", "referencedSchema", "referencedTable", "referencedColumns", "onDelete", "onUpdate"],
+      "required": [
+        "name",
+        "columns",
+        "referencedSchema",
+        "referencedTable",
+        "referencedColumns",
+        "onDelete",
+        "onUpdate"
+      ],
       "properties": {
-        "name": { "type": "string" },
-        "columns": { "type": "array", "minItems": 1, "items": { "type": "string" } },
-        "referencedSchema": { "type": "string" },
-        "referencedTable": { "type": "string" },
-        "referencedColumns": { "type": "array", "minItems": 1, "items": { "type": "string" } },
-        "onDelete": { "$ref": "#/$defs/fkAction" },
-        "onUpdate": { "$ref": "#/$defs/fkAction" }
+        "name": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "referencedSchema": {
+          "type": "string"
+        },
+        "referencedTable": {
+          "type": "string"
+        },
+        "referencedColumns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "onDelete": {
+          "$ref": "#/$defs/fkAction"
+        },
+        "onUpdate": {
+          "$ref": "#/$defs/fkAction"
+        }
       }
     },
-    "fkAction": { "enum": ["no-action", "restrict", "cascade", "set-null", "set-default"] },
+    "fkAction": {
+      "enum": [
+        "no-action",
+        "restrict",
+        "cascade",
+        "set-null",
+        "set-default"
+      ]
+    },
     "label": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "properties"],
+      "required": [
+        "name",
+        "properties"
+      ],
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "properties": {
           "description": "Observed or declared properties, ordered by name.",
           "type": "array",
-          "items": { "$ref": "#/$defs/graphProperty" }
+          "items": {
+            "$ref": "#/$defs/graphProperty"
+          }
+        },
+        "indexes": {
+          "description": "Range indexes on nodes with this label (including those backing uniqueness constraints), ordered by property list. Absent when the inspector could not list indexes.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "properties",
+              "unique"
+            ],
+            "properties": {
+              "properties": {
+                "description": "Indexed properties, in index order.",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string"
+                }
+              },
+              "unique": {
+                "type": "boolean"
+              }
+            }
+          }
         }
       }
     },
     "relationshipType": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "properties"],
+      "required": [
+        "name",
+        "properties"
+      ],
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "properties": {
           "type": "array",
-          "items": { "$ref": "#/$defs/graphProperty" }
+          "items": {
+            "$ref": "#/$defs/graphProperty"
+          }
         }
       }
     },
     "graphProperty": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["name", "types", "mandatory"],
+      "required": [
+        "name",
+        "types",
+        "mandatory"
+      ],
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string"
+        },
         "types": {
           "description": "Logical types observed for this property, ordered by name. More than one type is a heterogeneity warning.",
           "type": "array",
-          "items": { "$ref": "#/$defs/typeInfo" }
+          "items": {
+            "$ref": "#/$defs/typeInfo"
+          }
         },
         "mandatory": {
           "description": "True when every observed node/relationship has the property, or an existence constraint requires it.",
@@ -230,14 +453,23 @@
     "warning": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "path", "message"],
+      "required": [
+        "code",
+        "path",
+        "message"
+      ],
       "properties": {
-        "code": { "type": "string", "pattern": "^RTG-[A-Z]+-[0-9]{3}$" },
+        "code": {
+          "type": "string",
+          "pattern": "^RTG-[A-Z]+-[0-9]{3}$"
+        },
         "path": {
           "description": "Location, e.g. 'public.orders.shipping_point'.",
           "type": "string"
         },
-        "message": { "type": "string" }
+        "message": {
+          "type": "string"
+        }
       }
     }
   }

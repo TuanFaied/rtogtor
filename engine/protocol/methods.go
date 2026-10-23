@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/url"
+	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
@@ -248,6 +249,11 @@ func migrate(ctx context.Context, s *Server, id string, raw json.RawMessage) (an
 		BatchSize   int             `json:"batchSize"`
 		ResumeRunID string          `json:"resumeRunId"`
 		StateDir    string          `json:"stateDir"`
+		Retry       *struct {
+			MaxAttempts      int   `json:"maxAttempts"`
+			InitialBackoffMs int64 `json:"initialBackoffMs"`
+			MaxBackoffMs     int64 `json:"maxBackoffMs"`
+		} `json:"retry"`
 	}
 	if err := decode(raw, &p); err != nil {
 		return nil, err
@@ -266,8 +272,16 @@ func migrate(ctx context.Context, s *Server, id string, raw json.RawMessage) (an
 	}
 	mig := rtogtor.NewMigration(src, dst, m)
 	defer func() { _ = mig.Close() }()
+	var retry rtogtor.RetryPolicy
+	if r := p.Retry; r != nil {
+		retry = rtogtor.RetryPolicy{MaxAttempts: r.MaxAttempts,
+			InitialBackoff: time.Duration(r.InitialBackoffMs) * time.Millisecond, MaxBackoff: time.Duration(r.MaxBackoffMs) * time.Millisecond}
+		if err := retry.Validate(); err != nil {
+			return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "retry: maxAttempts must be 1–100 and backoffs 0–3600000 ms, with maxBackoffMs at least initialBackoffMs").Wrap(err)
+		}
+	}
 	rep, err := mig.Run(ctx, rtogtor.RunOptions{
-		DryRun: p.DryRun, BatchSize: p.BatchSize, ResumeRunID: p.ResumeRunID, StateDir: p.StateDir,
+		DryRun: p.DryRun, BatchSize: p.BatchSize, ResumeRunID: p.ResumeRunID, StateDir: p.StateDir, Retry: retry,
 		Progress: func(pr rtogtor.Progress) {
 			s.emit(id, "progress", struct {
 				StepID  string `json:"stepId"`
@@ -305,6 +319,7 @@ func verify(ctx context.Context, s *Server, _ string, raw json.RawMessage) (any,
 		runParams
 		Source      *connection `json:"source"`
 		Destination *connection `json:"destination"`
+		Values      bool        `json:"values"`
 	}
 	if err := decode(raw, &p); err != nil {
 		return nil, err
@@ -319,7 +334,7 @@ func verify(ctx context.Context, s *Server, _ string, raw json.RawMessage) (any,
 	}
 	mig := rtogtor.NewMigration(src, dst, nil)
 	defer func() { _ = mig.Close() }()
-	return mig.Verify(ctx, p.RunID, p.dir())
+	return mig.VerifyWith(ctx, p.RunID, rtogtor.VerifyOptions{StateDir: p.dir(), Values: p.Values})
 }
 
 func report(_ context.Context, _ *Server, _ string, raw json.RawMessage) (any, error) {

@@ -181,7 +181,8 @@ destination (--dest-env), to check the tables that already exist.`,
 func newMigrateCmd(opts *options) *cobra.Command {
 	var (
 		mappingPath, sourceEnv, destEnv, stateDir, resume string
-		batchSize                                         int
+		batchSize, retryAttempts                          int
+		retryInitial, retryMax                            time.Duration
 		dryRun                                            bool
 	)
 	cmd := &cobra.Command{
@@ -232,10 +233,14 @@ Exit status: 0 succeeded, 3 finished with failed records (see
 					fmt.Fprintf(cmd.ErrOrStderr(), "%s %-40s read %-9d written %-9d failed %d\n", state, p.StepID, p.Read, p.Written, p.Failed)
 				}
 			}
+			var retry rtogtor.RetryPolicy
+			if f := cmd.Flags(); f.Changed("retry-attempts") || f.Changed("retry-initial-backoff") || f.Changed("retry-max-backoff") {
+				retry = rtogtor.RetryPolicy{MaxAttempts: retryAttempts, InitialBackoff: retryInitial, MaxBackoff: retryMax}
+			}
 			mig := rtogtor.NewMigration(src, dst, m)
 			defer func() { _ = mig.Close() }()
 			rep, runErr := mig.Run(ctx, rtogtor.RunOptions{
-				DryRun: dryRun, BatchSize: batchSize, ResumeRunID: resume, StateDir: stateDir, Progress: progress,
+				DryRun: dryRun, BatchSize: batchSize, ResumeRunID: resume, StateDir: stateDir, Progress: progress, Retry: retry,
 			})
 			if rep == nil {
 				return fail(cmd, opts, runErr)
@@ -262,6 +267,16 @@ Exit status: 0 succeeded, 3 finished with failed records (see
 	cmd.Flags().IntVar(&batchSize, "batch-size", 1000, "records per batch (ignored when resuming: the run's batch size is kept)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "read and convert everything, write nothing")
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the run with this ID")
+	d := rtogtor.DefaultRetry
+	cmd.Flags().IntVar(&retryAttempts, "retry-attempts", d.MaxAttempts, "attempts per write on transient errors, including the first (1 disables retries)")
+	cmd.Flags().DurationVar(&retryInitial, "retry-initial-backoff", d.InitialBackoff, "first retry backoff; doubles per retry, with jitter")
+	cmd.Flags().DurationVar(&retryMax, "retry-max-backoff", d.MaxBackoff, "maximum retry backoff")
+	cmd.Long += `
+
+Transient errors (deadlocks, leader switches, lost connections) are retried
+with exponential backoff and jitter. The --retry-* flags set the policy; it
+is recorded in the run, and a resumed run keeps it unless the flags are
+given again.`
 	return cmd
 }
 
@@ -282,8 +297,9 @@ func printReport(cmd *cobra.Command, opts *options, rep *reporting.Report) error
 
 func newVerifyCmd(opts *options) *cobra.Command {
 	var runID, sourceEnv, destEnv, stateDir string
+	var values bool
 	cmd := &cobra.Command{
-		Use:   "verify --run-id RUN_ID --source-env VAR --dest-env VAR",
+		Use:   "verify --run-id RUN_ID --source-env VAR --dest-env VAR [--values]",
 		Short: "Compare a run's source and destination",
 		Long: `Verify a run. Relational to graph: for every entity, check that each source
 row's identity has a node; compare node counts per label and relationship
@@ -291,6 +307,11 @@ counts per type with the source, and report dangling source references.
 Graph to relational: check that each keyed node has a row, compare row counts
 with the distinct node keys, and compare filled foreign keys with the
 relationships that define them. The result is added to the run's report.
+
+--values also compares every migrated value with its source (RTG-VERIFY-005),
+reading all mapped data once more. Values a plan allowed to change (precision,
+range or structure losses) are not compared; mismatch messages name keys and
+properties, never values.
 
 Exit status: 0 passed, 1 discrepancies found or verification failed.`,
 		Args: cobra.NoArgs,
@@ -307,7 +328,7 @@ Exit status: 0 passed, 1 discrepancies found or verification failed.`,
 			defer stop()
 			mig := rtogtor.NewMigration(src, dst, nil)
 			defer func() { _ = mig.Close() }()
-			v, err := mig.Verify(ctx, runID, stateDir)
+			v, err := mig.VerifyWith(ctx, runID, rtogtor.VerifyOptions{StateDir: stateDir, Values: values})
 			if err != nil {
 				return reportError(cmd, opts, err)
 			}
@@ -330,6 +351,7 @@ Exit status: 0 passed, 1 discrepancies found or verification failed.`,
 	_ = cmd.MarkFlagRequired("source-env")
 	cmd.Flags().StringVar(&destEnv, "dest-env", "", destEnvHelp)
 	_ = cmd.MarkFlagRequired("dest-env")
+	cmd.Flags().BoolVar(&values, "values", false, "also compare every migrated value")
 	registerStateDir(cmd, &stateDir)
 	return cmd
 }

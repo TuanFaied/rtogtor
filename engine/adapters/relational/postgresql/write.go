@@ -278,3 +278,56 @@ func (a *Adapter) MissingKeys(ctx context.Context, table relational.Table, key [
 	}
 	return out, nil
 }
+
+// RowsByKey implements relational.Adapter.
+func (a *Adapter) RowsByKey(ctx context.Context, table relational.Table, key []relational.Column, columns []relational.Column, keys [][]ir.Value) ([][]ir.Value, error) {
+	out := make([][]ir.Value, len(keys))
+	if len(keys) == 0 {
+		return out, nil
+	}
+	args, err := columnArrays(key, keys)
+	if err != nil {
+		return nil, err
+	}
+	sel := make([]string, len(columns))
+	for i, c := range columns {
+		sel[i] = "to_json(t." + quoteIdent(c.Name) + ")::text"
+	}
+	where := make([]string, len(key))
+	for i, k := range key {
+		where[i] = fmt.Sprintf("t.%s = CAST(u.c%d AS %s)", quoteIdent(k.Name), i, castType(k))
+	}
+	what := "reading rows of " + table.Schema + "." + table.Name
+	sql := "SELECT u.i" + strings.Repeat(", ", min(1, len(sel))) + strings.Join(sel, ", ") +
+		" FROM " + unnest(len(key), true) + " JOIN " + tableRef(table).sql() + " AS t ON " + strings.Join(where, " AND ")
+	rows, err := a.conn.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, a.queryError(what, err)
+	}
+	defer rows.Close()
+	raw := make([]*string, len(columns))
+	dest := make([]any, len(columns)+1)
+	var i int64
+	dest[0] = &i
+	for j := range raw {
+		dest[j+1] = &raw[j]
+	}
+	for rows.Next() {
+		if err := rows.Scan(dest...); err != nil {
+			return nil, a.queryError(what, err)
+		}
+		vals := make([]ir.Value, len(columns))
+		for j, c := range columns {
+			v, err := decodeValue(c, raw[j])
+			if err != nil {
+				return nil, rtgerr.New(rtgerr.ExecConversion, "%s: column %s: %v", what, c.Name, err)
+			}
+			vals[j] = v
+		}
+		out[i-1] = vals
+	}
+	if err := rows.Err(); err != nil {
+		return nil, a.queryError(what, err)
+	}
+	return out, nil
+}

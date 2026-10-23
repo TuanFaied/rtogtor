@@ -103,6 +103,7 @@ Each code defines:
 | `RTG-VERIFY-002` | error | no | Entity count mismatch |
 | `RTG-VERIFY-003` | error | no | Relationship count mismatch |
 | `RTG-VERIFY-004` | warning | no | Dangling source reference |
+| `RTG-VERIFY-005` | error | no | Value mismatch |
 | `RTG-PROTO-001` | error | no | Unsupported protocol version |
 | `RTG-PROTO-002` | error | no | Malformed protocol message |
 | `RTG-PROTO-003` | error | no | Unknown method |

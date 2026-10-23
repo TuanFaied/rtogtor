@@ -74,6 +74,7 @@ const (
 	VerifyEntityCount     Code = "RTG-VERIFY-002"
 	VerifyRelationCount   Code = "RTG-VERIFY-003"
 	VerifyDanglingSource  Code = "RTG-VERIFY-004"
+	VerifyValueMismatch   Code = "RTG-VERIFY-005"
 	ProtoUnsupportedMajor Code = "RTG-PROTO-001"
 	ProtoMalformed        Code = "RTG-PROTO-002"
 	ProtoUnknownMethod    Code = "RTG-PROTO-003"

@@ -2,6 +2,7 @@ package planning
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -277,7 +278,8 @@ func TestReversePlanRejections(t *testing.T) {
 		if !hasCode(issues, rtgerr.PlanSourceShape, "/entities/0/labels") || !hasCode(issues, rtgerr.PlanSourceShape, "/entities/0/properties/4") {
 			t.Errorf("got %v", codesOf(issues))
 		}
-		if len(p.Warnings) != 2 {
+		// Two shape warnings, plus one missing-index warning per entity.
+		if len(p.Warnings) != 6 {
 			t.Errorf("warnings = %+v", p.Warnings)
 		}
 	})
@@ -289,4 +291,48 @@ func TestReversePlanRejections(t *testing.T) {
 			t.Error("a bytes key must be rejected")
 		}
 	})
+}
+
+func TestReversePlanWarnsWithoutKeyIndex(t *testing.T) {
+	m, src, dst := reverseInputs(t)
+	p, issues := buildReverse(m, src, dst)
+	if issues.HasErrors() {
+		t.Fatal(issues)
+	}
+	// The forward migration only indexes rtg_id.
+	for i := range m.Entities {
+		if !hasCode(issues, rtgerr.PlanSourceShape, fmt.Sprintf("/entities/%d/key", i)) {
+			t.Errorf("entity %d: no missing-index warning in %v", i, codesOf(issues))
+		}
+	}
+	if !strings.Contains(p.Warnings[3].Message, "CREATE INDEX FOR (n:`OrderItem`) ON (n.`orderId`, n.`lineNo`)") {
+		t.Errorf("warning = %s", p.Warnings[3].Message)
+	}
+
+	// An index whose leading properties are the key, in key order, removes it.
+	for i := range src.Labels {
+		if src.Labels[i].Name == "OrderItem" {
+			idx := append(*src.Labels[i].Indexes, schemameta.LabelIndex{Properties: []string{"orderId", "lineNo", "quantity"}})
+			src.Labels[i].Indexes = &idx
+		}
+		if src.Labels[i].Name == "Customer" {
+			idx := []schemameta.LabelIndex{{Properties: []string{"email", "id"}}} // wrong order
+			src.Labels[i].Indexes = &idx
+		}
+	}
+	_, issues = buildReverse(m, src, dst)
+	if hasCode(issues, rtgerr.PlanSourceShape, "/entities/3/key") {
+		t.Errorf("OrderItem has an index on its key: %v", codesOf(issues))
+	}
+	if !hasCode(issues, rtgerr.PlanSourceShape, "/entities/0/key") {
+		t.Errorf("an index on (email, id) does not serve key (id): %v", codesOf(issues))
+	}
+
+	// Unknown indexes (older metadata): no warning.
+	for i := range src.Labels {
+		src.Labels[i].Indexes = nil
+	}
+	if _, issues = buildReverse(m, src, dst); hasCode(issues, rtgerr.PlanSourceShape, "/entities/0/key") {
+		t.Errorf("indexes unknown, but warned: %v", codesOf(issues))
+	}
 }

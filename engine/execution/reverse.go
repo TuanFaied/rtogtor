@@ -42,7 +42,7 @@ func (r *runner) runReverse(ctx context.Context) error {
 			if s.Kind != planning.StepTable {
 				continue
 			}
-			if err := r.retry(ctx, func() error { return r.opts.RelationalDestination.ExecDDL(ctx, s.SQL) }); err != nil {
+			if err := r.retry(ctx, s.ID, 0, func() error { return r.opts.RelationalDestination.ExecDDL(ctx, s.SQL) }); err != nil {
 				return err
 			}
 		}
@@ -402,7 +402,7 @@ next:
 		Table: relational.Table{Schema: step.Table.Schema, Name: step.Table.Name},
 		Key:   names(step.Key), Columns: cols, Rows: out,
 	}
-	return r.writeRows(ctx, len(out), func(rows [][]ir.Value) error {
+	return r.writeRows(ctx, step, batchNo, len(out), func(rows [][]ir.Value) error {
 		b := batch
 		b.Rows = rows
 		return r.opts.RelationalDestination.UpsertRows(ctx, b)
@@ -440,7 +440,7 @@ func (r *runner) foreignKeys(ctx context.Context, step *planning.Step, batchNo i
 		Table: relational.Table{Schema: step.Table.Schema, Name: step.Table.Name},
 		Key:   columnsOf(step.Key), Columns: columnsOf(l.Columns),
 	}
-	return r.writeRows(ctx, len(out), func(rows [][]ir.Value) error {
+	return r.writeRows(ctx, step, batchNo, len(out), func(rows [][]ir.Value) error {
 		b := batch
 		b.Rows = rows
 		return r.opts.RelationalDestination.UpdateRows(ctx, b)
@@ -449,8 +449,8 @@ func (r *runner) foreignKeys(ctx context.Context, step *planning.Step, batchNo i
 
 // writeRows writes a batch; if the database rejects it for a non-retryable
 // reason, it writes the rows one at a time to isolate the rejected ones.
-func (r *runner) writeRows(ctx context.Context, n int, write func([][]ir.Value) error, rows [][]ir.Value, fail func(int, error)) (int64, error) {
-	err := r.retry(ctx, func() error { return write(rows) })
+func (r *runner) writeRows(ctx context.Context, step *planning.Step, batchNo int64, n int, write func([][]ir.Value) error, rows [][]ir.Value, fail func(int, error)) (int64, error) {
+	err := r.retry(ctx, step.ID, batchNo, func() error { return write(rows) })
 	if err == nil {
 		return int64(n), nil
 	}
@@ -463,7 +463,7 @@ func (r *runner) writeRows(ctx context.Context, n int, write func([][]ir.Value) 
 	}
 	var written int64
 	for i := range rows {
-		if err := r.retry(ctx, func() error { return write(rows[i : i+1]) }); err != nil {
+		if err := r.retry(ctx, step.ID, batchNo, func() error { return write(rows[i : i+1]) }); err != nil {
 			if retryableOrCancelled(err) {
 				return 0, err
 			}

@@ -310,8 +310,16 @@ func (a *Adapter) Inspect(ctx context.Context, _ graph.InspectOptions) (*schemam
 			addProperty(props, name, types, mandatory)
 		}
 	}
+	indexes, err := a.labelIndexes(ctx)
+	if err != nil {
+		return nil, err
+	}
 	for name, props := range labels {
-		doc.Labels = append(doc.Labels, schemameta.Label{Name: name, Properties: sortedProps(props)})
+		idx := append([]schemameta.LabelIndex{}, indexes[name]...)
+		sort.Slice(idx, func(i, j int) bool {
+			return strings.Join(idx[i].Properties, "\x00") < strings.Join(idx[j].Properties, "\x00")
+		})
+		doc.Labels = append(doc.Labels, schemameta.Label{Name: name, Properties: sortedProps(props), Indexes: &idx})
 	}
 	sort.Slice(doc.Labels, func(i, j int) bool { return doc.Labels[i].Name < doc.Labels[j].Name })
 
@@ -339,6 +347,29 @@ func (a *Adapter) Inspect(ctx context.Context, _ graph.InspectOptions) (*schemam
 	}
 	sort.Slice(doc.RelationshipTypes, func(i, j int) bool { return doc.RelationshipTypes[i].Name < doc.RelationshipTypes[j].Name })
 	return doc, nil
+}
+
+// labelIndexes lists online range indexes on node labels, including those
+// backing uniqueness and key constraints.
+func (a *Adapter) labelIndexes(ctx context.Context) (map[string][]schemameta.LabelIndex, error) {
+	recs, err := a.query(ctx, "listing indexes",
+		"SHOW INDEXES YIELD entityType, type, state, labelsOrTypes, properties, owningConstraint "+
+			"WHERE entityType = 'NODE' AND type = 'RANGE' AND state = 'ONLINE' "+
+			"RETURN labelsOrTypes, properties, owningConstraint IS NOT NULL AS unique", nil)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string][]schemameta.LabelIndex{}
+	for _, r := range recs {
+		ls, _ := r.Get("labelsOrTypes")
+		ps, _ := r.Get("properties")
+		u, _ := r.Get("unique")
+		unique, _ := u.(bool)
+		for _, l := range asStrings(ls) {
+			out[l] = append(out[l], schemameta.LabelIndex{Properties: asStrings(ps), Unique: unique})
+		}
+	}
+	return out, nil
 }
 
 func asStrings(v any) []string {

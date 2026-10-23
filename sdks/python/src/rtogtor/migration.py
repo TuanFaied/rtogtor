@@ -8,7 +8,7 @@ from collections.abc import Callable
 from types import TracebackType
 from typing import Any
 
-from ._generated.models import Failure, Plan, Progress, Report, Verification
+from ._generated.models import Failure, Plan, Progress, Report, RetryPolicy, Verification
 from .connection import Connection
 from .engine import Engine
 from .mapping import Mapping
@@ -86,6 +86,7 @@ class Migration:
         resume_run_id: str | None = None,
         state_dir: str | None = None,
         on_progress: Callable[[Progress], None] | None = None,
+        retry: RetryPolicy | None = None,
         _cancel: threading.Event | None = None,
     ) -> Report:
         """Runs the migration (or a dry run) and returns its report.
@@ -93,7 +94,8 @@ class Migration:
         If the run fails or is interrupted, the ``RtoGtoRError`` carries the
         report; resume with ``resume_run_id=error.report.run_id``.
         ``on_progress`` is called (from a background thread) after every
-        committed batch.
+        committed batch. ``retry`` sets the retry policy for transient errors;
+        ``None`` keeps a resumed run's policy, or uses the engine default.
         """
         if self._destination is None and not dry_run:
             raise ValueError("a destination connection is required unless dry_run is set")
@@ -113,20 +115,31 @@ class Migration:
                 "batchSize": batch_size,
                 "resumeRunId": resume_run_id,
                 "stateDir": state_dir,
+                "retry": retry.model_dump(mode="json", by_alias=True) if retry is not None else None,
             },
             _cancel,
             on_event,
         )
         return Report.model_validate(result)
 
-    def verify(self, run_id: str, state_dir: str | None = None) -> Verification:
-        """Compares a run's source and destination; the result is added to the run's report."""
+    def verify(self, run_id: str, state_dir: str | None = None, *, values: bool = False) -> Verification:
+        """Compares a run's source and destination; the result is added to the run's report.
+
+        ``values=True`` also compares every migrated value (``RTG-VERIFY-005``),
+        reading all mapped data once more.
+        """
         if self._destination is None:
             raise ValueError("verification needs a destination connection")
         engine = self._engine_started()
         result = engine._call(
             "verify",
-            {"runId": run_id, "source": self._wire_source, "destination": self._wire_destination, "stateDir": state_dir},
+            {
+                "runId": run_id,
+                "source": self._wire_source,
+                "destination": self._wire_destination,
+                "stateDir": state_dir,
+                "values": values,
+            },
         )
         return Verification.model_validate(result)
 
@@ -192,6 +205,7 @@ class AsyncMigration:
         resume_run_id: str | None = None,
         state_dir: str | None = None,
         on_progress: Callable[[Progress], None] | None = None,
+        retry: RetryPolicy | None = None,
     ) -> Report:
         """See ``Migration.run``."""
         result: Report = await self._cancellable(
@@ -201,11 +215,12 @@ class AsyncMigration:
                 resume_run_id=resume_run_id,
                 state_dir=state_dir,
                 on_progress=on_progress,
+                retry=retry,
                 _cancel=c,
             )
         )
         return result
 
-    async def verify(self, run_id: str, state_dir: str | None = None) -> Verification:
+    async def verify(self, run_id: str, state_dir: str | None = None, *, values: bool = False) -> Verification:
         """See ``Migration.verify``."""
-        return await asyncio.to_thread(self._sync.verify, run_id, state_dir)
+        return await asyncio.to_thread(lambda: self._sync.verify(run_id, state_dir, values=values))

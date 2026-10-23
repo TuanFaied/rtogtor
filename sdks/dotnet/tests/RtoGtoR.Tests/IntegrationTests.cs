@@ -136,6 +136,58 @@ public sealed class IntegrationTests : IAsyncLifetime
         }
     }
 
+    /// <summary>A migration whose engine process injects the given test faults.</summary>
+    private static Migration Faulty(Mapping mapping, string fault) =>
+        new(Source, Destination, mapping, new EngineOptions
+        {
+            Environment = new Dictionary<string, string>(StringComparer.Ordinal) { ["RTOGTOR_TEST_FAULT"] = fault },
+        });
+
+    [IntegrationFact]
+    public async Task Resumes_after_a_fault_between_commit_and_checkpoint()
+    {
+        // The worst crash point: the batch is committed but not checkpointed.
+        await using var m = Faulty(await MappingAsync(), "step=relationships:OrderContainsItem;batch=1;point=before-checkpoint");
+        var error = await Assert.ThrowsAsync<RtoGtoRException>(() =>
+            m.RunAsync(new RunOptions { StateDirectory = _stateDir, BatchSize = 1 }));
+        Assert.Equal(ErrorCodes.Exec004, error.Code);
+        Assert.Equal("interrupted", error.Report!.Status);
+
+        // The same engine process: the fault fired once.
+        var report = await m.RunAsync(new RunOptions { StateDirectory = _stateDir, ResumeRunId = error.Report.RunId });
+        Assert.Equal("succeeded", report.Status);
+        Assert.Equal(2, report.Attempts);
+        Assert.Equal(24, report.Totals.Written);
+        var verification = await m.VerifyAsync(report.RunId, new VerifyOptions { StateDirectory = _stateDir, Values = true });
+        Assert.Equal("passed", verification.Status);
+        Assert.All(verification.Entities, e => Assert.Equal(0, e.ValueMismatches));
+    }
+
+    [IntegrationFact]
+    public async Task Retries_transient_faults_per_the_retry_policy()
+    {
+        var mapping = await MappingAsync();
+        var retry = new RetryPolicy { MaxAttempts = 3, InitialBackoffMs = 1, MaxBackoffMs = 5 };
+        await using (var m = Faulty(mapping, "step=nodes:Customer;point=write;times=2"))
+        {
+            var report = await m.RunAsync(new RunOptions { StateDirectory = _stateDir, Retry = retry });
+            Assert.Equal("succeeded", report.Status);
+            Assert.Equal(2, report.Retries);
+            Assert.Equal(retry, report.Retry);
+        }
+        await using (var m = Faulty(mapping, "step=nodes:Customer;point=write;times=5"))
+        {
+            var error = await Assert.ThrowsAsync<RtoGtoRException>(() => m.RunAsync(new RunOptions
+            {
+                StateDirectory = _stateDir,
+                Retry = new RetryPolicy { MaxAttempts = 2, InitialBackoffMs = 1, MaxBackoffMs = 1 },
+            }));
+            Assert.Equal(ErrorCodes.Exec003, error.Code);
+            Assert.Equal("interrupted", error.Report!.Status);
+            Assert.Equal(1, error.Report.Retries);
+        }
+    }
+
     /// <summary>Calls the handler synchronously (Progress&lt;T&gt; would post to the thread pool).</summary>
     private sealed class SyncProgress<T>(Action<T> handler) : IProgress<T>
     {
