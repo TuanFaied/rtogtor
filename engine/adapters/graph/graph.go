@@ -170,6 +170,12 @@ type NodeRecord struct {
 	Err error
 }
 
+// NodeValues are one node's properties, or the error converting them.
+type NodeValues struct {
+	Values []ir.Value
+	Err    error
+}
+
 // ServerInfo describes the connected server. It never holds credentials.
 type ServerInfo struct {
 	Product  string
@@ -218,6 +224,10 @@ type Adapter interface {
 	CountKeyedNodes(ctx context.Context, labels []string, key []NodeField) (int64, error)
 	// CountNodesWithoutKey counts nodes with all labels that ReadNodes skips.
 	CountNodesWithoutKey(ctx context.Context, labels []string, key []NodeField) (int64, error)
+	// NodeValues reads the properties of the nodes with the label whose
+	// identity property is one of ids, as canonical values of the fields'
+	// logical types. Ids without a node are absent from the result.
+	NodeValues(ctx context.Context, label, idProperty string, ids []string, props []NodeField) (map[string]NodeValues, error)
 	// CountRelated counts nodes with all labels and a key that have exactly
 	// one related node of rel, which matches.
 	CountRelated(ctx context.Context, labels []string, key []NodeField, rel RelatedRead) (int64, error)

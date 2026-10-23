@@ -69,10 +69,18 @@ database, the identity and value vectors pass, and CI is green.
 | Round-trip tests PostgreSQL → Neo4j → PostgreSQL (existing and created tables), resume, graph shapes that do not fit tables | ✅ |
 | Reverse plan conformance case through Go, C#, Python and TypeScript | ✅ all pass |
 
-## Milestone 6 — Production hardening
+## Milestone 6 — Production hardening *(implemented on branch `milestone-6/hardening`)*
 
-Resumption across SDKs, retry policies, fault injection, performance and
-memory tests, security review.
+| Item | Status |
+|---|---|
+| Explicit retry policy: CLI flags, Go API, protocol, all SDKs; recorded in run state and reports with a retry count | ✅ |
+| Fault injection inside retried writes and at every crash point, in-process and through `RTOGTOR_TEST_FAULT` | ✅ |
+| Resumption after an injected commit-before-checkpoint fault, through the C#, Python and TypeScript SDKs | ✅ all pass |
+| Value-level verification (`verify --values`, `RTG-VERIFY-005`), both directions | ✅ |
+| Planner warning when a Neo4j source lacks a key index | ✅ |
+| Memory-ceiling tests in both directions, throughput measurement, value benchmarks ([performance](performance.md)) | ✅ |
+| Fuzz targets for every untrusted input, in CI | ✅ no findings |
+| Security review and dependency scans in all four ecosystems ([security](security.md)) | ✅ |
 
 ## Milestone 7 — Public release 1.0
 

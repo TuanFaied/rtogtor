@@ -73,9 +73,25 @@ rtogtor migrate --mapping mapping.yaml --source-env SOURCE_URL --dest-env NEO4J_
 
 | Error | Behavior |
 |---|---|
-| Transient Neo4j errors (deadlocks, leader switches, unavailable servers) | Retried by the driver's managed transactions, then up to 3 attempts by the engine (200 ms → 5 s backoff). If they persist, the run stops as `interrupted` with `RTG-EXEC-003`; resume later. |
+| Transient errors (Neo4j deadlocks, leader switches and unavailable servers; PostgreSQL serialization failures, deadlocks and lost connections) | Neo4j's managed transactions retry first. Then the engine retries per the run's **retry policy**, by default 3 attempts per write with 200 ms → 5 s exponential backoff and jitter. If the error persists, the run stops as `interrupted` with `RTG-EXEC-003`; resume later. |
 | Non-retryable error for a whole batch | The batch is written one row at a time to isolate bad rows; those become failed records and the rest are written. |
 | Cancellation (Ctrl-C) | The current batch is abandoned before its checkpoint; the run is `interrupted` and resumable. |
+
+The retry policy is set per run: `rtogtor migrate --retry-attempts N
+--retry-initial-backoff D --retry-max-backoff D`, `RunOptions.Retry` in Go,
+`retry` in the protocol and every SDK. It is recorded in the run state and
+report (`retry`), together with the number of retried operations
+(`retries`). A resumed run keeps its policy unless a new one is given.
+`--retry-attempts 1` disables retries.
+
+## Testing failures
+
+Every crash point above, and transient write failures, can be injected into
+a real engine with the test-only `RTOGTOR_TEST_FAULT` variable
+([development.md](development.md#fault-injection)). The C#, Python and
+TypeScript SDKs use it in their integration tests: a run stopped after a
+batch commits but before its checkpoint is resumed through the SDK and
+verified, value by value, to hold no duplicates and no losses.
 
 ## Changing sources
 

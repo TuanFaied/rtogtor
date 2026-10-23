@@ -58,6 +58,26 @@ public sealed record class KeyValue
 }
 
 /// <summary>
+/// How transient errors (retryable error codes) are retried. Each attempt waits a random time
+/// between half and all of the current backoff, which starts at initialBackoffMs and doubles
+/// up to maxBackoffMs.
+/// </summary>
+public sealed record class RetryPolicy
+{
+    /// <summary>
+    /// Attempts per operation, including the first. 1 disables retries.
+    /// </summary>
+    [JsonPropertyName("maxAttempts")]
+    public required long MaxAttempts { get; init; }
+
+    [JsonPropertyName("initialBackoffMs")]
+    public required long InitialBackoffMs { get; init; }
+
+    [JsonPropertyName("maxBackoffMs")]
+    public required long MaxBackoffMs { get; init; }
+}
+
+/// <summary>
 /// State of one migration run, stored as runs/&lt;runId&gt;/state.json in the state directory
 /// (default .rtogtor). Any engine or SDK can resume a run from this file together with the
 /// run's mapping.json and plan.json. Run state never contains credentials or host names.
@@ -104,6 +124,22 @@ public sealed record class RunState
     /// </summary>
     [JsonPropertyName("attempts")]
     public required long Attempts { get; init; }
+
+    /// <summary>
+    /// The retry policy of the current attempt. Absent in state written before engine 0.1
+    /// Milestone 6.
+    /// </summary>
+    [JsonPropertyName("retry")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RetryPolicy? Retry { get; init; }
+
+    /// <summary>
+    /// Retried operations over all attempts of the run (each retry of a failed operation counts
+    /// once).
+    /// </summary>
+    [JsonPropertyName("retries")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? Retries { get; init; }
 
     [JsonPropertyName("startedAt")]
     public required string StartedAt { get; init; }

@@ -26,7 +26,7 @@ var allConstants = []Code{
 	ExecMultipleRelated, ExecDuplicateKey, ExecPrecisionLoss,
 	RunNotFound, RunMappingChanged, RunCompleted, RunStateCorrupt,
 	NeoQuery,
-	VerifyMissingEntity, VerifyEntityCount, VerifyRelationCount, VerifyDanglingSource,
+	VerifyMissingEntity, VerifyEntityCount, VerifyRelationCount, VerifyDanglingSource, VerifyValueMismatch,
 	ProtoUnsupportedMajor, ProtoMalformed, ProtoUnknownMethod, ProtoInvalidParams,
 	ProtoDuplicateID, ProtoHandshake, ProtoEngineVersion, ProtoEngineMissing,
 	CLIUsage, Internal,

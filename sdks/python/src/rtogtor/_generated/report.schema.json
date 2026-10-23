@@ -53,6 +53,12 @@
       "type": "integer",
       "minimum": 1
     },
+    "retry": {
+      "$ref": "run-state.schema.json#/$defs/retryPolicy"
+    },
+    "retries": {
+      "$ref": "run-state.schema.json#/properties/retries"
+    },
     "source": {
       "$ref": "run-state.schema.json#/$defs/endpoint"
     },
@@ -269,6 +275,10 @@
               "type": "string"
             }
           }
+        },
+        "valueMismatches": {
+          "description": "Present when values were compared (verify with values): records whose compared values differ between source and destination.",
+          "$ref": "#/$defs/count"
         }
       }
     },

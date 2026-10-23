@@ -86,6 +86,9 @@ rtogtor report   --run-id <run-id>
 rtogtor failures --run-id <run-id>
 ```
 
+`rtogtor verify --values` also compares every migrated value with its source
+(`RTG-VERIFY-005`), reading all mapped data once more.
+
 Every command accepts `--format json`. Run state lives in `.rtogtor/` by
 default (`--state-dir` to change it).
 

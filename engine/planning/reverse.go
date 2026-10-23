@@ -197,6 +197,7 @@ func (b *builder) reverseEntity(e *mapping.Entity, index int, p *Plan) *revEntit
 			b.add(rtgerr.PlanSourceShape, path+"/labels", "label %s has no nodes in the inspected graph", l)
 		}
 	}
+	defer b.checkKeyIndex(r, path)
 	t, exists := b.destTable(r.schema, e.Table)
 	if exists {
 		r.table = t
@@ -248,6 +249,41 @@ func (b *builder) reverseEntity(e *mapping.Entity, index int, p *Plan) *revEntit
 		r.ok = false
 	}
 	return r
+}
+
+// checkKeyIndex warns when no label of the entity has a range index whose
+// leading properties are the key properties, in key order: without one,
+// every key-ordered batch read sorts the label.
+func (b *builder) checkKeyIndex(r *revEntity, path string) {
+	if !r.ok || len(r.key) == 0 {
+		return
+	}
+	key := make([]string, len(r.key))
+	for i, f := range r.key {
+		key[i] = f.Property
+	}
+	known := false
+	for _, l := range r.e.Labels {
+		meta, ok := b.labelMeta(l)
+		if !ok || meta.Indexes == nil {
+			continue
+		}
+		known = true
+		for _, idx := range *meta.Indexes {
+			if len(idx.Properties) >= len(key) && strings.Join(idx.Properties[:len(key)], "\x00") == strings.Join(key, "\x00") {
+				return
+			}
+		}
+	}
+	if !known {
+		return // indexes were not inspected
+	}
+	quoted := make([]string, len(key))
+	for i, k := range key {
+		quoted[i] = "n.`" + strings.ReplaceAll(k, "`", "``") + "`"
+	}
+	b.add(rtgerr.PlanSourceShape, path+"/key", "no range index on :%s(%s); every batch read sorts the label, which is slow for large labels. Create one: CREATE INDEX FOR (n:`%s`) ON (%s)",
+		r.e.Labels[0], strings.Join(key, ", "), strings.ReplaceAll(r.e.Labels[0], "`", "``"), strings.Join(quoted, ", "))
 }
 
 func hasUniqueKey(t *schemameta.Table, key []string) bool {

@@ -99,11 +99,24 @@ type State struct {
 	Destination Endpoint   `json:"destination"`
 	Streams     []Stream   `json:"streams"`
 	// Attempts counts how many times the run was started or resumed.
-	Attempts    int        `json:"attempts"`
+	Attempts int `json:"attempts"`
+	// Retry is the retry policy of the current attempt; nil in state
+	// written by older engines.
+	Retry *RetryPolicy `json:"retry,omitempty"`
+	// Retries counts retried operations over all attempts.
+	Retries     int64      `json:"retries"`
 	StartedAt   string     `json:"startedAt"`
 	UpdatedAt   string     `json:"updatedAt"`
 	CompletedAt string     `json:"completedAt,omitempty"`
 	LastError   *ErrorInfo `json:"lastError,omitempty"`
+}
+
+// RetryPolicy is how transient errors are retried (run-state.schema.json
+// #/$defs/retryPolicy).
+type RetryPolicy struct {
+	MaxAttempts      int   `json:"maxAttempts"`
+	InitialBackoffMs int64 `json:"initialBackoffMs"`
+	MaxBackoffMs     int64 `json:"maxBackoffMs"`
 }
 
 // Stream returns the stream for a step.

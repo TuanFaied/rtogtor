@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -445,11 +446,68 @@ func mustDecode(t *testing.T, doc string) *mapping.Mapping {
 
 // TestBoundedMemory migrates a table far larger than the memory ceiling.
 // Loading it whole would need ~300 MiB; the heap must stay well below.
+// perfRows is the row count of the memory and throughput tests; set
+// RTOGTOR_PERF_ROWS to measure larger runs (docs/performance.md).
+func perfRows(t *testing.T) int {
+	if v := os.Getenv("RTOGTOR_PERF_ROWS"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n < 1 {
+			t.Fatalf("RTOGTOR_PERF_ROWS=%q is not a positive number", v)
+		}
+		return n
+	}
+	return 150_000
+}
+
+// peakHeap runs fn and returns the peak heap in use while it ran, sampled
+// every 20 ms, and how long it took.
+func peakHeap(fn func()) (uint64, time.Duration) {
+	runtime.GC()
+	var peak atomic.Uint64
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var ms runtime.MemStats
+		for {
+			select {
+			case <-stop:
+				return
+			case <-time.After(20 * time.Millisecond):
+				runtime.ReadMemStats(&ms)
+				if ms.HeapInuse > peak.Load() {
+					peak.Store(ms.HeapInuse)
+				}
+			}
+		}
+	}()
+	start := time.Now()
+	fn()
+	elapsed := time.Since(start)
+	close(stop)
+	wg.Wait()
+	return peak.Load(), elapsed
+}
+
+// memoryCeiling is the peak heap allowed for a run with batch size 1000 and
+// ~2 KiB records, whatever the row count.
+const memoryCeiling = 96 << 20
+
+func checkPeak(t *testing.T, what string, rows int, peak uint64, elapsed time.Duration) {
+	t.Helper()
+	t.Logf("%s: %d records of ~2 KiB in %s (%.0f records/s), peak heap in use %d MiB",
+		what, rows, elapsed.Round(time.Millisecond), float64(rows)/elapsed.Seconds(), peak>>20)
+	if peak > memoryCeiling {
+		t.Errorf("peak heap %d MiB exceeds the %d MiB ceiling", peak>>20, memoryCeiling>>20)
+	}
+}
+
 func TestBoundedMemory(t *testing.T) {
 	if testing.Short() {
 		t.Skip("slow")
 	}
-	const rows = 150_000
+	rows := perfRows(t)
 	w := newWorld(t, fmt.Sprintf(`
 		CREATE TABLE big (id bigint PRIMARY KEY, payload text NOT NULL);
 		INSERT INTO big SELECT g, repeat(md5(g::text), 64) FROM generate_series(1, %d) AS g;
@@ -472,40 +530,74 @@ entities:
 	p := w.plan(m)
 	store := &runstate.Store{Dir: t.TempDir()}
 
-	runtime.GC()
-	var peak atomic.Uint64
-	stop := make(chan struct{})
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var ms runtime.MemStats
-		for {
-			select {
-			case <-stop:
-				return
-			case <-time.After(20 * time.Millisecond):
-				runtime.ReadMemStats(&ms)
-				if ms.HeapInuse > peak.Load() {
-					peak.Store(ms.HeapInuse)
-				}
-			}
-		}
-	}()
-	st, err := execution.Run(w.ctx, w.options(m, p, store, 1000))
-	close(stop)
-	wg.Wait()
+	var st *runstate.State
+	var err error
+	peak, elapsed := peakHeap(func() { st, err = execution.Run(w.ctx, w.options(m, p, store, 1000)) })
 	if err != nil || st.Status != runstate.StatusSucceeded {
 		t.Fatalf("%v %s", err, st.Status)
 	}
 	if n := w.cypher("MATCH (n:Big_"+w.sfx+") RETURN count(n) AS n", nil)[0].Values[0]; n != int64(rows) {
 		t.Fatalf("got %v nodes", n)
 	}
-	const ceiling = 96 << 20
-	t.Logf("peak heap in use: %d MiB for %d rows of ~2 KiB", peak.Load()>>20, rows)
-	if peak.Load() > ceiling {
-		t.Errorf("peak heap %d MiB exceeds the %d MiB ceiling", peak.Load()>>20, ceiling>>20)
-	}
+	checkPeak(t, "PostgreSQL → Neo4j", rows, peak, elapsed)
 	b, _ := json.Marshal(st.Stream("nodes:Big"))
 	t.Logf("stream: %s", b)
+}
+
+func TestBoundedMemoryReverse(t *testing.T) {
+	if testing.Short() {
+		t.Skip("slow")
+	}
+	rows := perfRows(t)
+	w := newWorld(t, "")
+	label := "Big_" + w.sfx
+	w.labels = []string{label}
+	// Load the graph in chunks, with the key index the planner asks for.
+	w.cypher("CREATE INDEX `rtg_e2e_"+w.sfx+"` FOR (n:`"+label+"`) ON (n.id)", nil)
+	t.Cleanup(func() { w.cypher("DROP INDEX `rtg_e2e_"+w.sfx+"` IF EXISTS", nil) })
+	payload := strings.Repeat("0123456789abcdef", 128) // 2 KiB
+	for from := 1; from <= rows; from += 20_000 {
+		w.cypher("UNWIND range($from, $to) AS i CREATE (:`"+label+"` {id: i, payload: $payload + toString(i)})",
+			map[string]any{"from": from, "to": min(from+19_999, rows), "payload": payload})
+	}
+	w.cypher("CALL db.awaitIndexes(300)", nil)
+
+	back, conn := w.backSchema(false)
+	m := mustDecode(t, `
+specVersion: "0.1.0"
+name: big-reverse
+direction: graph-to-relational
+source: { kind: neo4j }
+destination: { kind: postgresql, schema: `+back+`, createTables: true }
+entities:
+  - name: Big
+    table: big
+    labels: [`+label+`]
+    key: [id]
+    properties:
+      - { column: id, property: id, type: int64 }
+      - { column: payload, property: payload, type: string }
+`)
+	p, issues := w.tryReversePlan(m)
+	if issues.HasErrors() {
+		t.Fatal(issues)
+	}
+	for _, d := range p.Warnings {
+		if strings.Contains(d.Message, "no range index") {
+			t.Errorf("the key index exists, but the plan warns: %s", d.Message)
+		}
+	}
+	store := &runstate.Store{Dir: t.TempDir()}
+
+	var st *runstate.State
+	var err error
+	peak, elapsed := peakHeap(func() { st, err = execution.Run(w.ctx, w.reverseOptions(m, p, store, 1000)) })
+	if err != nil || st.Status != runstate.StatusSucceeded {
+		t.Fatalf("%v %s", err, st.Status)
+	}
+	var n int
+	if err := conn.QueryRow(w.ctx, "SELECT count(*) FROM "+back+".big").Scan(&n); err != nil || n != rows {
+		t.Fatalf("got %d rows (%v)", n, err)
+	}
+	checkPeak(t, "Neo4j → PostgreSQL", rows, peak, elapsed)
 }

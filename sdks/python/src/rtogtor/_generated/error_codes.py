@@ -151,6 +151,8 @@ class ErrorCode:
     """Relationship count mismatch."""
     VERIFY_004: Final = "RTG-VERIFY-004"
     """Dangling source reference."""
+    VERIFY_005: Final = "RTG-VERIFY-005"
+    """Value mismatch."""
 
 
 ERROR_CODES: Final[dict[str, ErrorCodeInfo]] = {
@@ -216,4 +218,5 @@ ERROR_CODES: Final[dict[str, ErrorCodeInfo]] = {
     "RTG-VERIFY-002": ErrorCodeInfo("RTG-VERIFY-002", "Entity count mismatch", "error", False, "The destination holds a different number of nodes for an entity than the source has rows (for example extra nodes from other sources sharing the label).", "Investigate extra nodes with the entity's label, or give the entity a dedicated label."),
     "RTG-VERIFY-003": ErrorCodeInfo("RTG-VERIFY-003", "Relationship count mismatch", "error", False, "The number of relationships of a mapped type differs from the number expected from the source.", "Check `rtogtor failures` for relationship records, then re-run; relationship writes are idempotent."),
     "RTG-VERIFY-004": ErrorCodeInfo("RTG-VERIFY-004", "Dangling source reference", "warning", False, "Source rows reference keys that do not exist in the referenced table (the mapping's foreign key is not enforced by the source). No relationship can be created for them.", "Fix the source data or add a foreign-key constraint."),
+    "RTG-VERIFY-005": ErrorCodeInfo("RTG-VERIFY-005", "Value mismatch", "error", False, "A destination record holds different values than its source record for compared properties. Values covered by a lossy transformation the plan allowed are not compared. Messages name the record key and property, never the values.", "Check whether the destination was changed after the run or by another writer; re-run the migration to rewrite the records."),
 }

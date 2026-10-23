@@ -40,15 +40,22 @@ Each item fails clearly with an error code; none is silently ignored.
 - **Relationships are merged per (start node, type, end node).** Two foreign
   keys of the same type between the same two nodes produce one relationship.
 - **Plans do not estimate run time** or row counts yet.
+- **One batch at a time per step.** Reading runs ahead of writing, but
+  batches are written sequentially, so throughput is bounded by one
+  database round trip per batch ([performance.md](performance.md)).
+- **Value verification compares canonical values.** Properties covered by
+  an allowed lossy transformation that changes values (precision, range,
+  structure) are skipped by `verify --values`.
 
 ## Neo4j → PostgreSQL
 
 - **Unmapped labels, properties and relationship types are not migrated**
   ([ADR-0006](adr/0006-graph-to-relational-semantics.md) §8).
 - **Index the key properties.** Nodes are read in key order, then element
-  ID. Without an index on the key properties of each label, Neo4j sorts the
-  label for every batch, which is slow for large labels. RtoGtoR never
-  creates the index: the source is never modified.
+  ID. Without a range index whose leading properties are the key, Neo4j
+  sorts the label for every batch, which is slow for large labels. The plan
+  warns (`RTG-PLAN-011`) and prints the `CREATE INDEX` statement; RtoGtoR
+  never creates it, because the source is never modified.
 - **Duplicate keys are detected when they are adjacent in key order.** Keys
   are compared after canonicalization, so stored values that order apart but
   canonicalize equal (a decimal key stored as `"1.0"` and `"1"`, uuid keys

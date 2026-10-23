@@ -386,6 +386,13 @@ public static class ErrorCodes
     /// </summary>
     public const string Verify004 = "RTG-VERIFY-004";
 
+    /// <summary>
+    /// Value mismatch. A destination record holds different values than its source record for
+    /// compared properties. Values covered by a lossy transformation the plan allowed are not
+    /// compared. Messages name the record key and property, never the values.
+    /// </summary>
+    public const string Verify005 = "RTG-VERIFY-005";
+
     /// <summary>Every defined code with its severity, retryability and remediation.</summary>
     public static IReadOnlyDictionary<string, ErrorCodeInfo> All { get; } = new Dictionary<string, ErrorCodeInfo>
     {
@@ -451,5 +458,6 @@ public static class ErrorCodes
         ["RTG-VERIFY-002"] = new("RTG-VERIFY-002", "Entity count mismatch", ErrorSeverity.Error, false, "The destination holds a different number of nodes for an entity than the source has rows (for example extra nodes from other sources sharing the label).", "Investigate extra nodes with the entity's label, or give the entity a dedicated label."),
         ["RTG-VERIFY-003"] = new("RTG-VERIFY-003", "Relationship count mismatch", ErrorSeverity.Error, false, "The number of relationships of a mapped type differs from the number expected from the source.", "Check `rtogtor failures` for relationship records, then re-run; relationship writes are idempotent."),
         ["RTG-VERIFY-004"] = new("RTG-VERIFY-004", "Dangling source reference", ErrorSeverity.Warning, false, "Source rows reference keys that do not exist in the referenced table (the mapping's foreign key is not enforced by the source). No relationship can be created for them.", "Fix the source data or add a foreign-key constraint."),
+        ["RTG-VERIFY-005"] = new("RTG-VERIFY-005", "Value mismatch", ErrorSeverity.Error, false, "A destination record holds different values than its source record for compared properties. Values covered by a lossy transformation the plan allowed are not compared. Messages name the record key and property, never the values.", "Check whether the destination was changed after the run or by another writer; re-run the migration to rewrite the records."),
     };
 }

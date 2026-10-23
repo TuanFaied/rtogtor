@@ -6,6 +6,7 @@ import type {
   Plan,
   Progress,
   Report,
+  RetryPolicy,
   Verification,
 } from "./generated/model.js";
 import type { Mapping } from "./mapping.js";
@@ -32,6 +33,11 @@ export interface RunOptions extends CallOptions {
   stateDir?: string;
   /** Called after every committed batch. */
   onProgress?: (progress: Progress) => void;
+  /**
+   * Retry policy for transient errors. Unset keeps a resumed run's policy, or uses the engine
+   * default (3 attempts, 200 ms to 5 s backoff).
+   */
+  retry?: RetryPolicy;
 }
 
 /**
@@ -99,6 +105,7 @@ export class Migration implements AsyncDisposable {
         destination: this.wireDestination,
         dryRun: options.dryRun ?? false,
         batchSize: options.batchSize,
+        retry: options.retry,
         resumeRunId: options.resumeRunId,
         stateDir: options.stateDir,
       },
@@ -111,15 +118,27 @@ export class Migration implements AsyncDisposable {
     )) as Report;
   }
 
-  /** Compares a run's source and destination; the result is added to the run's report. */
-  async verify(runId: string, options: CallOptions & { stateDir?: string } = {}): Promise<Verification> {
+  /**
+   * Compares a run's source and destination; the result is added to the run's report. `values`
+   * also compares every migrated value (RTG-VERIFY-005), reading all mapped data once more.
+   */
+  async verify(
+    runId: string,
+    options: CallOptions & { stateDir?: string; values?: boolean } = {},
+  ): Promise<Verification> {
     if (this.options.destination === undefined) {
       throw new TypeError("Verification needs a destination connection.");
     }
     const engine = await this.start();
     return (await engine.session.call(
       "verify",
-      { runId, source: this.wireSource, destination: this.wireDestination, stateDir: options.stateDir },
+      {
+        runId,
+        source: this.wireSource,
+        destination: this.wireDestination,
+        stateDir: options.stateDir,
+        values: options.values,
+      },
       options,
     )) as Verification;
   }

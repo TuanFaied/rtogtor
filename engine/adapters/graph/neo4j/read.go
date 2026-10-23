@@ -363,3 +363,37 @@ func (a *Adapter) CountRelated(ctx context.Context, labels []string, key []graph
 			" WITH n, ["+pattern+" | CASE WHEN "+match+" THEN 1 ELSE 0 END][..2] AS r"+
 			" WHERE size(r) = 1 AND r[0] = 1 RETURN count(n) AS n", nil)
 }
+
+// NodeValues implements graph.Adapter.
+func (a *Adapter) NodeValues(ctx context.Context, label, idProperty string, ids []string, props []graph.NodeField) (map[string]graph.NodeValues, error) {
+	if len(ids) == 0 {
+		return map[string]graph.NodeValues{}, nil
+	}
+	cols := make([]string, len(props))
+	for i, p := range props {
+		cols[i] = "n." + quote(p.Property)
+	}
+	recs, err := a.query(ctx, "reading :"+label+" values",
+		"UNWIND $ids AS id MATCH (n:"+quote(label)+" {"+quote(idProperty)+": id}) RETURN id, ["+strings.Join(cols, ", ")+"] AS props",
+		map[string]any{"ids": ids})
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]graph.NodeValues, len(recs))
+	for _, r := range recs {
+		id, _ := r.Get("id")
+		raw, _ := r.Get("props")
+		vals := asList(raw)
+		nv := graph.NodeValues{Values: make([]ir.Value, len(props))}
+		for i, p := range props {
+			v, err := decodeValue(p.Type, p.Element, vals[i])
+			if err != nil {
+				nv = graph.NodeValues{Err: rtgerr.New(rtgerr.ExecConversion, "property %s: %v", p.Property, err)}
+				break
+			}
+			nv.Values[i] = v
+		}
+		out[fmt.Sprint(id)] = nv
+	}
+	return out, nil
+}

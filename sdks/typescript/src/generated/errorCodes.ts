@@ -143,6 +143,8 @@ export const ErrorCodes = {
   Verify003: "RTG-VERIFY-003",
   /** Dangling source reference. */
   Verify004: "RTG-VERIFY-004",
+  /** Value mismatch. */
+  Verify005: "RTG-VERIFY-005",
 } as const;
 
 /** Every defined code with its severity, retryability and remediation. */
@@ -209,4 +211,5 @@ export const ErrorCodeInfos: Readonly<Record<string, ErrorCodeInfo>> = {
   "RTG-VERIFY-002": { code: "RTG-VERIFY-002", title: "Entity count mismatch", severity: "error", retryable: false, meaning: "The destination holds a different number of nodes for an entity than the source has rows (for example extra nodes from other sources sharing the label).", remediation: "Investigate extra nodes with the entity's label, or give the entity a dedicated label." },
   "RTG-VERIFY-003": { code: "RTG-VERIFY-003", title: "Relationship count mismatch", severity: "error", retryable: false, meaning: "The number of relationships of a mapped type differs from the number expected from the source.", remediation: "Check `rtogtor failures` for relationship records, then re-run; relationship writes are idempotent." },
   "RTG-VERIFY-004": { code: "RTG-VERIFY-004", title: "Dangling source reference", severity: "warning", retryable: false, meaning: "Source rows reference keys that do not exist in the referenced table (the mapping's foreign key is not enforced by the source). No relationship can be created for them.", remediation: "Fix the source data or add a foreign-key constraint." },
+  "RTG-VERIFY-005": { code: "RTG-VERIFY-005", title: "Value mismatch", severity: "error", retryable: false, meaning: "A destination record holds different values than its source record for compared properties. Values covered by a lossy transformation the plan allowed are not compared. Messages name the record key and property, never the values.", remediation: "Check whether the destination was changed after the run or by another writer; re-run the migration to rewrite the records." },
 };

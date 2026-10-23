@@ -419,6 +419,14 @@
       "remediation": "Fix the source data or add a foreign-key constraint."
     },
     {
+      "code": "RTG-VERIFY-005",
+      "title": "Value mismatch",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A destination record holds different values than its source record for compared properties. Values covered by a lossy transformation the plan allowed are not compared. Messages name the record key and property, never the values.",
+      "remediation": "Check whether the destination was changed after the run or by another writer; re-run the migration to rewrite the records."
+    },
+    {
       "code": "RTG-PROTO-001",
       "title": "Unsupported protocol version",
       "severity": "error",

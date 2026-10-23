@@ -81,6 +81,30 @@ jobs:
           cache-dependency-path: engine/go.sum
       - run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
+  fuzz:
+    # Untrusted inputs: mapping documents, protocol lines, values, JSON and
+    # the failure log. Seeds also run as regular tests in every job.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          check-latest: true
+          cache-dependency-path: engine/go.sum
+      - name: Fuzz each target for 30 seconds
+        run: |
+          set -euo pipefail
+          for target in ./ir:FuzzCanonicalize ./internal/canonjson:FuzzCanonicalize ./mapping:FuzzDecode \
+                        ./runstate:FuzzFailures ./protocol:FuzzServe; do
+            go test "${target%%:*}" -run '^$' -fuzz "^${target##*:}\$" -fuzztime 30s
+          done
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: fuzz-crashers
+          path: engine/**/testdata/fuzz/
+
   integration:
     runs-on: ubuntu-latest
     services:

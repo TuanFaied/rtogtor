@@ -47,11 +47,37 @@ type Destination interface {
 	MergeRelationships(ctx context.Context, batch graph.RelationshipBatch) ([]int, error)
 }
 
-// RetryPolicy controls retries of retryable destination errors.
+// RetryPolicy controls retries of retryable errors (error codes marked
+// retryable in specs/error-codes.json). Each retry waits a random time
+// between half and all of the current backoff, which starts at
+// InitialBackoff and doubles up to MaxBackoff.
 type RetryPolicy struct {
+	// MaxAttempts per operation, including the first; 1 disables retries.
 	MaxAttempts    int
 	InitialBackoff time.Duration
 	MaxBackoff     time.Duration
+}
+
+// State converts the policy for run state and reports.
+func (p RetryPolicy) State() *runstate.RetryPolicy {
+	return &runstate.RetryPolicy{MaxAttempts: p.MaxAttempts,
+		InitialBackoffMs: p.InitialBackoff.Milliseconds(), MaxBackoffMs: p.MaxBackoff.Milliseconds()}
+}
+
+// RetryFromState converts a stored policy.
+func RetryFromState(p *runstate.RetryPolicy) RetryPolicy {
+	return RetryPolicy{MaxAttempts: p.MaxAttempts,
+		InitialBackoff: time.Duration(p.InitialBackoffMs) * time.Millisecond, MaxBackoff: time.Duration(p.MaxBackoffMs) * time.Millisecond}
+}
+
+// Validate checks the policy's limits (run-state.schema.json).
+func (p RetryPolicy) Validate() error {
+	const limit = time.Hour
+	if p.MaxAttempts < 1 || p.MaxAttempts > 100 || p.InitialBackoff < 0 || p.InitialBackoff > limit ||
+		p.MaxBackoff < 0 || p.MaxBackoff > limit || p.MaxBackoff < p.InitialBackoff {
+		return rtgerr.New(rtgerr.CLIUsage, "invalid retry policy: attempts must be 1–100 and backoffs 0–1h with the maximum at least the initial backoff")
+	}
+	return nil
 }
 
 // DefaultRetry is used when Options.Retry is zero.
@@ -72,6 +98,10 @@ const (
 	BeforeCheckpoint FaultPoint = "before-checkpoint"
 	// AfterCheckpoint: after a batch is committed and checkpointed.
 	AfterCheckpoint FaultPoint = "after-checkpoint"
+	// Write: inside the retried destination write, before every attempt.
+	// A retryable error simulates a transient destination failure. Batch
+	// is 0 for schema statements (constraints, tables).
+	Write FaultPoint = "write"
 )
 
 // FaultInjector lets tests stop a run at a precise point. Returning an error
@@ -108,22 +138,34 @@ type Options struct {
 	DryRun bool
 	// ResumeRunID resumes an existing run instead of starting a new one.
 	ResumeRunID string
-	Retry       RetryPolicy
-	Progress    func(Progress)
-	Fault       FaultInjector
+	// Retry is the retry policy. Zero keeps a resumed run's policy, or
+	// uses DefaultRetry.
+	Retry    RetryPolicy
+	Progress func(Progress)
+	Fault    FaultInjector
 }
 
 // Run executes the plan and returns the final run state. The state, the
 // failed records and the report are persisted in the store even when Run
 // returns an error, so the run can be inspected and resumed.
 func Run(ctx context.Context, opts Options) (*runstate.State, error) {
-	if opts.Retry.MaxAttempts <= 0 {
-		opts.Retry = DefaultRetry
+	if opts.Retry.MaxAttempts > 0 {
+		if err := opts.Retry.Validate(); err != nil {
+			return nil, err
+		}
 	}
 	st, err := start(opts)
 	if err != nil {
 		return nil, err
 	}
+	switch {
+	case opts.Retry.MaxAttempts > 0:
+	case st.Retry != nil:
+		opts.Retry = RetryFromState(st.Retry)
+	default:
+		opts.Retry = DefaultRetry
+	}
+	st.Retry = opts.Retry.State()
 	r := &runner{opts: opts, st: st}
 	runErr := r.run(ctx)
 	if err := r.finish(runErr); err != nil && runErr == nil {
@@ -201,7 +243,7 @@ func (r *runner) run(ctx context.Context) error {
 			if s.Kind != planning.StepConstraint {
 				continue
 			}
-			if err := r.retry(ctx, func() error {
+			if err := r.retry(ctx, s.ID, 0, func() error {
 				return r.opts.Destination.EnsureIdentityConstraint(ctx, s.Label, s.Property)
 			}); err != nil {
 				return err
@@ -268,13 +310,17 @@ func (r *runner) finish(runErr error) error {
 	return r.opts.Store.WriteFile(st.RunID, "report.json", b)
 }
 
-// retry runs fn, retrying retryable errors with exponential backoff and
-// jitter.
-func (r *runner) retry(ctx context.Context, fn func() error) error {
+// retry runs a destination write, retrying retryable errors with
+// exponential backoff and jitter. The Write fault point is consulted before
+// every attempt.
+func (r *runner) retry(ctx context.Context, stepID string, batch int64, fn func() error) error {
 	p := r.opts.Retry
 	backoff := p.InitialBackoff
 	for attempt := 1; ; attempt++ {
-		err := fn()
+		err := r.fault(stepID, batch, Write)
+		if err == nil {
+			err = fn()
+		}
 		if err == nil {
 			return nil
 		}
@@ -282,6 +328,7 @@ func (r *runner) retry(ctx context.Context, fn func() error) error {
 		if !errors.As(err, &e) || !e.Retryable() || attempt >= p.MaxAttempts {
 			return err
 		}
+		r.st.Retries++
 		sleep := backoff/2 + time.Duration(rand.Int64N(int64(backoff/2)+1)) //nolint:gosec // jitter, not security
 		select {
 		case <-ctx.Done():
@@ -529,7 +576,7 @@ func (r *runner) nodes(ctx context.Context, step *planning.Step, batchNo int64, 
 	}
 
 	batch := graph.NodeBatch{Labels: step.Labels, IDProperty: r.opts.Plan.IdentityProperty, Rows: out}
-	err := r.retry(ctx, func() error { return r.opts.Destination.MergeNodes(ctx, batch) })
+	err := r.retry(ctx, step.ID, batchNo, func() error { return r.opts.Destination.MergeNodes(ctx, batch) })
 	if err == nil {
 		return int64(len(out)), nil
 	}
@@ -541,7 +588,7 @@ func (r *runner) nodes(ctx context.Context, step *planning.Step, batchNo int64, 
 	var written int64
 	for i, n := range out {
 		single := graph.NodeBatch{Labels: step.Labels, IDProperty: batch.IDProperty, Rows: []graph.NodeRow{n}}
-		if err := r.retry(ctx, func() error { return r.opts.Destination.MergeNodes(ctx, single) }); err != nil {
+		if err := r.retry(ctx, step.ID, batchNo, func() error { return r.opts.Destination.MergeNodes(ctx, single) }); err != nil {
 			if retryableOrCancelled(err) {
 				return 0, err
 			}
@@ -617,7 +664,7 @@ func (r *runner) relationships(ctx context.Context, step *planning.Step, batchNo
 		IDProperty: r.opts.Plan.IdentityProperty, Rows: out,
 	}
 	var missing []int
-	err := r.retry(ctx, func() error {
+	err := r.retry(ctx, step.ID, batchNo, func() error {
 		var err error
 		missing, err = r.opts.Destination.MergeRelationships(ctx, batch)
 		return err

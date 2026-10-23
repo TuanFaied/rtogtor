@@ -21,7 +21,7 @@ from urllib.parse import unquote, urlsplit
 import pytest
 
 from rtogtor import AsyncMigration, Connection, ErrorCode, Mapping, Migration, RtoGtoRError
-from rtogtor.models import Progress
+from rtogtor.models import Progress, RetryPolicy
 
 from conftest import integration_configured, repo_path
 
@@ -109,3 +109,43 @@ def test_async_migration(mapping: Mapping, tmp_path: Path) -> None:
             assert (await m.verify(report.run_id, str(tmp_path))).status == "passed"
 
     asyncio.run(main())
+
+
+def test_resume_after_injected_fault(mapping: Mapping, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The engine stops after a batch commits but before its checkpoint, the
+    worst crash point; resuming replays that batch without duplicates."""
+    monkeypatch.setenv("RTOGTOR_TEST_FAULT", "step=relationships:OrderContainsItem;batch=1;point=before-checkpoint")
+    state = str(tmp_path)
+    with Migration(SOURCE, DESTINATION, mapping) as m:
+        with pytest.raises(RtoGtoRError) as exc:
+            m.run(state_dir=state, batch_size=1)
+        assert exc.value.code == ErrorCode.EXEC_004
+        assert exc.value.report is not None and exc.value.report.status == "interrupted"
+        run_id = exc.value.report.run_id
+
+        # The same engine process: the fault fired once and does not fire again.
+        report = m.run(state_dir=state, resume_run_id=run_id)
+        assert report.status == "succeeded" and report.attempts == 2
+        assert report.totals.written == 24
+        verification = m.verify(run_id, state, values=True)
+        assert verification.status == "passed"
+        assert all(e.value_mismatches == 0 for e in verification.entities)
+
+
+def test_retry_policy_absorbs_transient_faults(mapping: Mapping, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RTOGTOR_TEST_FAULT", "step=nodes:Customer;point=write;times=2")
+    retry = RetryPolicy(max_attempts=3, initial_backoff_ms=1, max_backoff_ms=5)
+    with Migration(SOURCE, DESTINATION, mapping) as m:
+        report = m.run(state_dir=str(tmp_path), retry=retry)
+    assert report.status == "succeeded"
+    assert report.retries == 2
+    assert report.retry == retry
+
+
+def test_exhausted_retries_interrupt_the_run(mapping: Mapping, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("RTOGTOR_TEST_FAULT", "step=nodes:Customer;point=write;times=5")
+    with Migration(SOURCE, DESTINATION, mapping) as m, pytest.raises(RtoGtoRError) as exc:
+        m.run(state_dir=str(tmp_path), retry=RetryPolicy(max_attempts=2, initial_backoff_ms=1, max_backoff_ms=1))
+    assert exc.value.code == ErrorCode.EXEC_003
+    assert exc.value.report is not None and exc.value.report.status == "interrupted"
+    assert exc.value.report.retries == 1
