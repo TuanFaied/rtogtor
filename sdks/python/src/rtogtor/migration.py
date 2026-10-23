@@ -69,9 +69,14 @@ class Migration:
             return self._engine
 
     def plan(self, *, _cancel: threading.Event | None = None) -> Plan:
-        """Inspects the source and plans the migration. Nothing is written."""
+        """Inspects the databases and plans the migration. Nothing is written.
+
+        Graph-to-relational mappings also inspect the destination, to check the tables that
+        already exist.
+        """
         engine = self._engine_started()
-        return Plan.model_validate(engine._call("plan", {"mapping": self._mapping._wire(), "source": self._wire_source}, _cancel))
+        params = {"mapping": self._mapping._wire(), "source": self._wire_source, "destination": self._wire_destination}
+        return Plan.model_validate(engine._call("plan", params, _cancel))
 
     def run(
         self,

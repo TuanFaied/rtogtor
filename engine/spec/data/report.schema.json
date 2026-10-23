@@ -160,7 +160,9 @@
         "kind": {
           "enum": [
             "load-nodes",
-            "load-relationships"
+            "load-relationships",
+            "load-rows",
+            "update-foreign-keys"
           ]
         },
         "done": {
@@ -232,8 +234,8 @@
       "required": [
         "entity",
         "label",
-        "sourceRows",
-        "destinationNodes",
+        "sourceCount",
+        "destinationCount",
         "missing",
         "missingKeys"
       ],
@@ -242,18 +244,19 @@
           "type": "string"
         },
         "label": {
-          "type": "string"
+          "type": "string",
+          "description": "The entity's primary label."
         },
-        "sourceRows": {
-          "description": "Source rows with a non-null key.",
+        "sourceCount": {
+          "description": "Source records with a non-null key: rows (relational source) or nodes (graph source).",
           "$ref": "#/$defs/count"
         },
-        "destinationNodes": {
-          "description": "Nodes carrying the entity's primary label.",
+        "destinationCount": {
+          "description": "Destination records: nodes carrying the entity's primary label, or rows of its table.",
           "$ref": "#/$defs/count"
         },
         "missing": {
-          "description": "Source rows whose identity has no node.",
+          "description": "Source records whose key has no destination record.",
           "$ref": "#/$defs/count"
         },
         "missingKeys": {

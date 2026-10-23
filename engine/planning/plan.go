@@ -20,7 +20,18 @@ const (
 	StepConstraint    StepKind = "ensure-identity-constraint"
 	StepNodes         StepKind = "load-nodes"
 	StepRelationships StepKind = "load-relationships"
+
+	// Graph → relational, in execution order.
+	StepTable       StepKind = "ensure-table"
+	StepRows        StepKind = "load-rows"
+	StepForeignKeys StepKind = "update-foreign-keys"
 )
+
+// Loads reports whether the step reads and writes data (and so has a run
+// stream with a checkpoint).
+func (k StepKind) Loads() bool {
+	return k == StepNodes || k == StepRelationships || k == StepRows || k == StepForeignKeys
+}
 
 // Plan is an execution plan.
 type Plan struct {
@@ -63,6 +74,25 @@ type Field struct {
 	Element    ir.LogicalType `json:"element,omitempty"`
 	NativeType string         `json:"nativeType"`
 	Nullable   bool           `json:"nullable"`
+	// Scale and FractionalDigits describe a relational destination column:
+	// values with more fractional digits would be rounded.
+	Scale            *int `json:"scale,omitempty"`
+	FractionalDigits *int `json:"fractionalDigits,omitempty"`
+}
+
+// ForeignKeyLoad describes how a graph → relational step fills foreign-key
+// columns from a relationship.
+type ForeignKeyLoad struct {
+	Relationship     string `json:"relationship"`
+	RelationshipType string `json:"relationshipType"`
+	// Direction is seen from the owner node: "outgoing" for
+	// (owner)-[:TYPE]->(referenced), "incoming" for the reverse.
+	Direction        string   `json:"direction"`
+	References       string   `json:"references"`
+	ReferencedLabels []string `json:"referencedLabels"`
+	ReferencedKey    []Field  `json:"referencedKey"`
+	Columns          []Field  `json:"columns"`
+	Deferred         bool     `json:"deferred"`
 }
 
 // NodeRef is one end of a relationship.
@@ -107,6 +137,13 @@ type Step struct {
 	To               *NodeRef       `json:"to,omitempty"`
 	ForeignKey       *ForeignKeyRef `json:"foreignKey,omitempty"`
 	SelfReference    bool           `json:"selfReference,omitempty"`
+
+	// ensure-table
+	SQL string `json:"sql,omitempty"`
+
+	// load-rows (non-deferred foreign keys) and update-foreign-keys (one
+	// deferred foreign key)
+	ForeignKeys []ForeignKeyLoad `json:"foreignKeys,omitempty"`
 }
 
 // Transformation records a lossy conversion the plan will perform and what

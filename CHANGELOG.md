@@ -5,6 +5,28 @@ grouped by component.
 
 ## Unreleased
 
+### Milestone 5 (branch `milestone-5/neo4j-to-postgres`)
+
+- Engine: Neo4j → PostgreSQL migrations (`direction: graph-to-relational`),
+  with the semantics in ADR-0006: key-ordered resumable reads from Neo4j,
+  `INSERT … ON CONFLICT` upserts, foreign keys written with the row or, for
+  self-references and cycles, filled afterwards; reverse verification
+- Spec: plan step kinds `ensure-table`, `load-rows`, `update-foreign-keys`;
+  `destination.createTables`; plan fields `scale` and `fractionalDigits`;
+  protocol `plan` accepts `destination` and `destinationMetadata`
+- Spec (breaking, pre-1.0): report `entities[].sourceRows` and
+  `destinationNodes` renamed `sourceCount` and `destinationCount`, since
+  either side can be rows or nodes
+- Error codes: RTG-PLAN-008…011, RTG-EXEC-005…007, RTG-PG-002
+- CLI: `inspect`, `plan`, `migrate` and `verify` take PostgreSQL or Neo4j
+  URLs; `plan --dest-env` for graph-to-relational mappings
+- Go API (breaking, pre-1.0): `PlanFromMetadata(mapping, source,
+  destination)`; `Inspect` accepts Neo4j connections
+- SDKs: `Engine.plan` takes optional destination metadata; `Migration.plan`
+  sends the destination; the reverse plan conformance case passes in C#,
+  Python and TypeScript
+- Example: `examples/ecommerce/mapping-reverse.yaml`
+
 ### Milestone 4 (branch `milestone-4/python-typescript`)
 
 - `tools/codegen`: Python (Pydantic v2) and TypeScript emitters; schemas ship

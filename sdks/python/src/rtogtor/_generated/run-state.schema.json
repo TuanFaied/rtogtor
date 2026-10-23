@@ -161,14 +161,16 @@
         "kind": {
           "enum": [
             "load-nodes",
-            "load-relationships"
+            "load-relationships",
+            "load-rows",
+            "update-foreign-keys"
           ]
         },
         "done": {
           "type": "boolean"
         },
         "cursor": {
-          "description": "Canonical text of the key of the last row in the last committed batch, in key order (exclusive resume point). null before the first commit.",
+          "description": "Canonical text of the key of the last row in the last committed batch, in key order (exclusive resume point); graph sources append the node's element ID. null before the first commit.",
           "oneOf": [
             {
               "type": "null"

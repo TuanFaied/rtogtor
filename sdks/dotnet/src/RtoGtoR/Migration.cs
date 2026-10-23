@@ -80,11 +80,14 @@ public sealed class Migration : IAsyncDisposable
         }
     }
 
-    /// <summary>Inspects the source and plans the migration. Nothing is written.</summary>
+    /// <summary>
+    /// Inspects the databases and plans the migration. Nothing is written. Graph-to-relational
+    /// mappings also inspect the destination, to check the tables that already exist.
+    /// </summary>
     public async Task<Plan> PlanAsync(CancellationToken cancellationToken = default)
     {
         var engine = await EngineAsync(cancellationToken).ConfigureAwait(false);
-        return await engine.CallAsync<Plan>("plan", new { mapping = _mapping.Json, source = _wireSource }, cancellationToken).ConfigureAwait(false);
+        return await engine.CallAsync<Plan>("plan", new { mapping = _mapping.Json, source = _wireSource, destination = _wireDestination }, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

@@ -171,9 +171,11 @@ func inspect(ctx context.Context, s *Server, _ string, raw json.RawMessage) (any
 
 func plan(ctx context.Context, s *Server, _ string, raw json.RawMessage) (any, error) {
 	var p struct {
-		Mapping        json.RawMessage `json:"mapping"`
-		Source         *connection     `json:"source"`
-		SourceMetadata json.RawMessage `json:"sourceMetadata"`
+		Mapping             json.RawMessage `json:"mapping"`
+		Source              *connection     `json:"source"`
+		SourceMetadata      json.RawMessage `json:"sourceMetadata"`
+		Destination         *connection     `json:"destination"`
+		DestinationMetadata json.RawMessage `json:"destinationMetadata"`
 	}
 	if err := decode(raw, &p); err != nil {
 		return nil, err
@@ -182,31 +184,59 @@ func plan(ctx context.Context, s *Server, _ string, raw json.RawMessage) (any, e
 	if err != nil {
 		return nil, err
 	}
+	reverse := m.Direction == mapping.GraphToRelational
 	if p.SourceMetadata != nil {
-		inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(p.SourceMetadata))
+		meta, err := decodeMetadata("sourceMetadata", p.SourceMetadata)
 		if err != nil {
-			return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "sourceMetadata: %v", err)
+			return nil, err
 		}
-		if v, err := jsonschemas.Validate(spec.SchemaMetadataSchemaFile, inst); err != nil || len(v) > 0 {
-			msg := "does not match schema-metadata.schema.json"
-			if len(v) > 0 {
-				msg = v[0].Path + ": " + v[0].Message
+		var dst *rtogtor.SchemaMetadata
+		if reverse {
+			if p.DestinationMetadata == nil {
+				return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "a graph-to-relational plan from sourceMetadata also needs destinationMetadata")
 			}
-			return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "sourceMetadata %s", msg)
+			if dst, err = decodeMetadata("destinationMetadata", p.DestinationMetadata); err != nil {
+				return nil, err
+			}
 		}
-		var meta rtogtor.SchemaMetadata
-		if err := json.Unmarshal(p.SourceMetadata, &meta); err != nil {
-			return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "sourceMetadata: %v", err)
-		}
-		return rtogtor.PlanFromMetadata(m, &meta)
+		return rtogtor.PlanFromMetadata(m, meta, dst)
 	}
 	src, err := s.resolve(p.Source)
 	if err != nil {
 		return nil, err
 	}
-	mig := rtogtor.NewMigration(src, rtogtor.Connection{}, m)
+	var dst rtogtor.Connection
+	if reverse {
+		if p.Destination == nil {
+			return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "a graph-to-relational plan needs destination, to inspect its tables")
+		}
+		if dst, err = s.resolve(p.Destination); err != nil {
+			return nil, err
+		}
+	}
+	mig := rtogtor.NewMigration(src, dst, m)
 	defer func() { _ = mig.Close() }()
 	return mig.Plan(ctx)
+}
+
+// decodeMetadata validates and decodes a schema-metadata parameter.
+func decodeMetadata(name string, raw json.RawMessage) (*rtogtor.SchemaMetadata, error) {
+	inst, err := jsonschema.UnmarshalJSON(bytes.NewReader(raw))
+	if err != nil {
+		return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "%s: %v", name, err)
+	}
+	if v, err := jsonschemas.Validate(spec.SchemaMetadataSchemaFile, inst); err != nil || len(v) > 0 {
+		msg := "does not match schema-metadata.schema.json"
+		if len(v) > 0 {
+			msg = v[0].Path + ": " + v[0].Message
+		}
+		return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "%s %s", name, msg)
+	}
+	var meta rtogtor.SchemaMetadata
+	if err := json.Unmarshal(raw, &meta); err != nil {
+		return nil, rtgerr.New(rtgerr.ProtoInvalidParams, "%s: %v", name, err)
+	}
+	return &meta, nil
 }
 
 func migrate(ctx context.Context, s *Server, id string, raw json.RawMessage) (any, error) {

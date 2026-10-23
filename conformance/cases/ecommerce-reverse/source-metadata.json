@@ -1,0 +1,241 @@
+{
+  "specVersion": "0.1.0",
+  "kind": "graph",
+  "database": {
+    "product": "neo4j"
+  },
+  "labels": [
+    {
+      "name": "Customer",
+      "properties": [
+        {
+          "name": "createdAt",
+          "types": [
+            {
+              "type": "timestamptz",
+              "nativeType": "DateTime"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "email",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "fullName",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "id",
+          "types": [
+            {
+              "type": "int64",
+              "nativeType": "Long"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "rtg_id",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        }
+      ]
+    },
+    {
+      "name": "Order",
+      "properties": [
+        {
+          "name": "id",
+          "types": [
+            {
+              "type": "int64",
+              "nativeType": "Long"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "placedAt",
+          "types": [
+            {
+              "type": "timestamptz",
+              "nativeType": "DateTime"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "rtg_id",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "status",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        }
+      ]
+    },
+    {
+      "name": "OrderItem",
+      "properties": [
+        {
+          "name": "lineNo",
+          "types": [
+            {
+              "type": "int64",
+              "nativeType": "Long"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "orderId",
+          "types": [
+            {
+              "type": "int64",
+              "nativeType": "Long"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "quantity",
+          "types": [
+            {
+              "type": "int64",
+              "nativeType": "Long"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "rtg_id",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "unitPrice",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        }
+      ]
+    },
+    {
+      "name": "Product",
+      "properties": [
+        {
+          "name": "id",
+          "types": [
+            {
+              "type": "int64",
+              "nativeType": "Long"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "name",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "price",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "rtg_id",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "sku",
+          "types": [
+            {
+              "type": "string",
+              "nativeType": "String"
+            }
+          ],
+          "mandatory": true
+        }
+      ]
+    }
+  ],
+  "relationshipTypes": [
+    {
+      "name": "CONTAINS",
+      "properties": []
+    },
+    {
+      "name": "OF_PRODUCT",
+      "properties": []
+    },
+    {
+      "name": "PLACED",
+      "properties": []
+    },
+    {
+      "name": "REFERRED_BY",
+      "properties": []
+    },
+    {
+      "name": "VARIANT_OF",
+      "properties": []
+    }
+  ]
+}

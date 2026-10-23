@@ -67,12 +67,15 @@ export class Migration implements AsyncDisposable {
     return this.engine;
   }
 
-  /** Inspects the source and plans the migration. Nothing is written. */
+  /**
+   * Inspects the databases and plans the migration. Nothing is written. Graph-to-relational
+   * mappings also inspect the destination, to check the tables that already exist.
+   */
   async plan(options: CallOptions = {}): Promise<Plan> {
     const engine = await this.start();
     return (await engine.session.call(
       "plan",
-      { mapping: this.options.mapping.document, source: this.wireSource },
+      { mapping: this.options.mapping.document, source: this.wireSource, destination: this.wireDestination },
       options,
     )) as Plan;
   }

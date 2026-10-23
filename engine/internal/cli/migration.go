@@ -32,13 +32,38 @@ func interruptible(cmd *cobra.Command) (context.Context, context.CancelFunc) {
 	return signal.NotifyContext(cmd.Context(), os.Interrupt)
 }
 
-// sourceFromEnv validates the variable before any connection attempt.
-func sourceFromEnv(name string) (rtogtor.Connection, error) {
-	if _, err := urlFromEnv(name); err != nil {
-		return rtogtor.Connection{}, err
+// connFromEnv returns a connection from the URL in an environment variable.
+// The URL scheme selects the product: postgres:// or postgresql:// for
+// PostgreSQL; neo4j://, neo4j+s://, bolt:// or bolt+s:// for Neo4j. The
+// variable is validated before any connection attempt.
+func connFromEnv(name string) (rtogtor.Connection, error) {
+	v, ok := os.LookupEnv(name)
+	if !ok || strings.TrimSpace(v) == "" {
+		return rtogtor.Connection{}, rtgerr.New(rtgerr.ConnConfig, "environment variable %s is not set or is empty", name)
 	}
-	return rtogtor.PostgreSQLFromEnv(name), nil
+	switch {
+	case strings.HasPrefix(v, "postgres://"), strings.HasPrefix(v, "postgresql://"):
+		return rtogtor.PostgreSQLFromEnv(name), nil
+	case strings.HasPrefix(v, "neo4j://"), strings.HasPrefix(v, "neo4j+s://"), strings.HasPrefix(v, "neo4j+ssc://"),
+		strings.HasPrefix(v, "bolt://"), strings.HasPrefix(v, "bolt+s://"), strings.HasPrefix(v, "bolt+ssc://"):
+		return rtogtor.Neo4jFromEnv(name), nil
+	}
+	return rtogtor.Connection{}, rtgerr.New(rtgerr.ConnConfig,
+		"environment variable %s must hold a postgres:// or postgresql:// URL, or a neo4j:// or bolt:// URL", name)
 }
+
+// optionalConn is connFromEnv for an optional flag.
+func optionalConn(name string) (rtogtor.Connection, error) {
+	if name == "" {
+		return rtogtor.Connection{}, nil
+	}
+	return connFromEnv(name)
+}
+
+const (
+	sourceEnvHelp = "name of the environment variable holding the source URL (PostgreSQL, or Neo4j for graph-to-relational mappings)"
+	destEnvHelp   = "name of the environment variable holding the destination URL (Neo4j, or PostgreSQL for graph-to-relational mappings)"
+)
 
 // loadMapping loads a mapping and prints its problems.
 func loadMapping(cmd *cobra.Command, opts *options, path string) (*mapping.Mapping, error) {
@@ -86,34 +111,45 @@ func fail(cmd *cobra.Command, opts *options, err error) error {
 
 func newPlanCmd(opts *options) *cobra.Command {
 	var (
-		mappingPath, sourceEnv string
-		timeout                time.Duration
+		mappingPath, sourceEnv, destEnv string
+		timeout                         time.Duration
 	)
 	cmd := &cobra.Command{
-		Use:   "plan --mapping FILE --source-env VAR",
+		Use:   "plan --mapping FILE --source-env VAR [--dest-env VAR]",
 		Short: "Show what a migration would do, without writing anything",
 		Long: `Inspect the source, validate the mapping against it, and print the
 execution plan: steps in order, lossy transformations and what allowed them,
 and warnings. --format json prints the plan as RFC 8785 canonical JSON
 (specs/plan.schema.json); the same inputs always give identical bytes.
 
-Planning reads the source catalog only and never connects to the destination.`,
+Planning only reads catalogs and never writes. Relational-to-graph planning
+reads the source only. Graph-to-relational planning also inspects the
+destination (--dest-env), to check the tables that already exist.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			m, err := loadMapping(cmd, opts, mappingPath)
 			if err != nil {
 				return err
 			}
-			src, err := sourceFromEnv(sourceEnv)
+			src, err := connFromEnv(sourceEnv)
 			if err != nil {
 				return reportError(cmd, opts, err)
+			}
+			var dst rtogtor.Connection
+			if m.Direction == mapping.GraphToRelational {
+				if destEnv == "" {
+					return fmt.Errorf("--dest-env is required for graph-to-relational mappings: planning inspects the destination's tables")
+				}
+				if dst, err = connFromEnv(destEnv); err != nil {
+					return reportError(cmd, opts, err)
+				}
 			}
 			ctx, stop := interruptible(cmd)
 			defer stop()
 			ctx, cancel := context.WithTimeout(ctx, timeout)
 			defer cancel()
 
-			mig := rtogtor.NewMigration(src, rtogtor.Connection{}, m)
+			mig := rtogtor.NewMigration(src, dst, m)
 			defer func() { _ = mig.Close() }()
 			p, err := mig.Plan(ctx)
 			if err != nil {
@@ -133,8 +169,9 @@ Planning reads the source catalog only and never connects to the destination.`,
 	}
 	cmd.Flags().StringVar(&mappingPath, "mapping", "", "mapping file (.json, .yaml or .yml)")
 	_ = cmd.MarkFlagRequired("mapping")
-	cmd.Flags().StringVar(&sourceEnv, "source-env", "", "name of the environment variable holding the PostgreSQL URL")
+	cmd.Flags().StringVar(&sourceEnv, "source-env", "", sourceEnvHelp)
 	_ = cmd.MarkFlagRequired("source-env")
+	cmd.Flags().StringVar(&destEnv, "dest-env", "", destEnvHelp+"; needed for graph-to-relational mappings")
 	cmd.Flags().DurationVar(&timeout, "timeout", 60*time.Second, "time limit for connecting and inspecting")
 	return cmd
 }
@@ -154,11 +191,14 @@ func newMigrateCmd(opts *options) *cobra.Command {
 transaction and checkpointed after it commits; writes are idempotent, so an
 interrupted run can be resumed with --resume RUN_ID without duplicates.
 
---dry-run reads and converts every row and reports what would be written,
-but writes nothing to the destination (not even constraints). A dry run does
-not need --dest-env.
+--dry-run reads and converts every record and reports what would be
+written, but writes nothing to the destination (not even constraints or
+tables). A relational-to-graph dry run does not need --dest-env; a
+graph-to-relational one does, because planning inspects the destination.
 
-The Neo4j URL may carry credentials: neo4j://user:password@host:7687.
+The direction comes from the mapping: PostgreSQL → Neo4j for
+relational-to-graph, Neo4j → PostgreSQL for graph-to-relational. A Neo4j URL
+may carry credentials: neo4j://user:password@host:7687.
 
 Exit status: 0 succeeded, 3 finished with failed records (see
 'rtogtor failures'), 1 failed or interrupted (resumable), 2 usage error.`,
@@ -168,19 +208,16 @@ Exit status: 0 succeeded, 3 finished with failed records (see
 			if err != nil {
 				return err
 			}
-			if destEnv == "" && !dryRun {
-				return fmt.Errorf("--dest-env is required unless --dry-run is set")
+			if destEnv == "" && (!dryRun || m.Direction == mapping.GraphToRelational) {
+				return fmt.Errorf("--dest-env is required unless --dry-run is set for a relational-to-graph mapping")
 			}
-			src, err := sourceFromEnv(sourceEnv)
+			src, err := connFromEnv(sourceEnv)
 			if err != nil {
 				return reportError(cmd, opts, err)
 			}
-			var dst rtogtor.Connection
-			if destEnv != "" {
-				if _, err := destURLFromEnv(destEnv); err != nil {
-					return reportError(cmd, opts, err)
-				}
-				dst = rtogtor.Neo4jFromEnv(destEnv)
+			dst, err := optionalConn(destEnv)
+			if err != nil {
+				return reportError(cmd, opts, err)
 			}
 			ctx, stop := interruptible(cmd)
 			defer stop()
@@ -218,23 +255,14 @@ Exit status: 0 succeeded, 3 finished with failed records (see
 	}
 	cmd.Flags().StringVar(&mappingPath, "mapping", "", "mapping file (.json, .yaml or .yml)")
 	_ = cmd.MarkFlagRequired("mapping")
-	cmd.Flags().StringVar(&sourceEnv, "source-env", "", "name of the environment variable holding the PostgreSQL URL")
+	cmd.Flags().StringVar(&sourceEnv, "source-env", "", sourceEnvHelp)
 	_ = cmd.MarkFlagRequired("source-env")
-	cmd.Flags().StringVar(&destEnv, "dest-env", "", "name of the environment variable holding the Neo4j URL (neo4j://user:password@host:7687)")
+	cmd.Flags().StringVar(&destEnv, "dest-env", "", destEnvHelp)
 	registerStateDir(cmd, &stateDir)
-	cmd.Flags().IntVar(&batchSize, "batch-size", 1000, "rows per batch (ignored when resuming: the run's batch size is kept)")
+	cmd.Flags().IntVar(&batchSize, "batch-size", 1000, "records per batch (ignored when resuming: the run's batch size is kept)")
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false, "read and convert everything, write nothing")
 	cmd.Flags().StringVar(&resume, "resume", "", "resume the run with this ID")
 	return cmd
-}
-
-// destURLFromEnv reads a Neo4j URL from the named environment variable.
-func destURLFromEnv(name string) (string, error) {
-	v, ok := os.LookupEnv(name)
-	if !ok || strings.TrimSpace(v) == "" {
-		return "", rtgerr.New(rtgerr.ConnConfig, "environment variable %s is not set or is empty", name)
-	}
-	return v, nil
 }
 
 func printReport(cmd *cobra.Command, opts *options, rep *reporting.Report) error {
@@ -257,24 +285,27 @@ func newVerifyCmd(opts *options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "verify --run-id RUN_ID --source-env VAR --dest-env VAR",
 		Short: "Compare a run's source and destination",
-		Long: `Verify a run: for every entity, check that each source row's identity has a
-node; compare node counts per label and relationship counts per type with the
-source, and report dangling source references. The result is added to the
-run's report.
+		Long: `Verify a run. Relational to graph: for every entity, check that each source
+row's identity has a node; compare node counts per label and relationship
+counts per type with the source, and report dangling source references.
+Graph to relational: check that each keyed node has a row, compare row counts
+with the distinct node keys, and compare filled foreign keys with the
+relationships that define them. The result is added to the run's report.
 
 Exit status: 0 passed, 1 discrepancies found or verification failed.`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			src, err := sourceFromEnv(sourceEnv)
+			src, err := connFromEnv(sourceEnv)
 			if err != nil {
 				return reportError(cmd, opts, err)
 			}
-			if _, err := destURLFromEnv(destEnv); err != nil {
+			dst, err := connFromEnv(destEnv)
+			if err != nil {
 				return reportError(cmd, opts, err)
 			}
 			ctx, stop := interruptible(cmd)
 			defer stop()
-			mig := rtogtor.NewMigration(src, rtogtor.Neo4jFromEnv(destEnv), nil)
+			mig := rtogtor.NewMigration(src, dst, nil)
 			defer func() { _ = mig.Close() }()
 			v, err := mig.Verify(ctx, runID, stateDir)
 			if err != nil {
@@ -295,9 +326,9 @@ Exit status: 0 passed, 1 discrepancies found or verification failed.`,
 	}
 	cmd.Flags().StringVar(&runID, "run-id", "", "run to verify")
 	_ = cmd.MarkFlagRequired("run-id")
-	cmd.Flags().StringVar(&sourceEnv, "source-env", "", "name of the environment variable holding the PostgreSQL URL")
+	cmd.Flags().StringVar(&sourceEnv, "source-env", "", sourceEnvHelp)
 	_ = cmd.MarkFlagRequired("source-env")
-	cmd.Flags().StringVar(&destEnv, "dest-env", "", "name of the environment variable holding the Neo4j URL")
+	cmd.Flags().StringVar(&destEnv, "dest-env", "", destEnvHelp)
 	_ = cmd.MarkFlagRequired("dest-env")
 	registerStateDir(cmd, &stateDir)
 	return cmd

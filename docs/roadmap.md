@@ -56,10 +56,18 @@ database, the identity and value vectors pass, and CI is green.
 | Five platform wheels; npm main package plus five platform packages; both smoke-tested as installed packages | ✅ (not yet published) |
 | CI for both SDKs (3 OSes, lint, types, tests, integration, packaging) | ✅ |
 
-## Milestone 5 — Neo4j → PostgreSQL
+## Milestone 5 — Neo4j → PostgreSQL *(implemented on branch `milestone-5/neo4j-to-postgres`)*
 
-Graph inspection, reverse mappings, relational schema planning, reverse
-execution, round-trip tests and loss reporting.
+| Item | Status |
+|---|---|
+| Semantics decided and recorded ([ADR-0006](adr/0006-graph-to-relational-semantics.md)) | ✅ |
+| Graph inspection in the CLI and every SDK (`inspect` on a Neo4j URL) | ✅ |
+| Reverse planning: graph and destination checks, unique keys, topological order, deferred self-references and cycles, optional `CREATE TABLE` DDL | ✅ |
+| Reverse execution: key-ordered resumable reads, idempotent upserts, per-row isolation of rejected rows | ✅ |
+| Per-value precision checks (`RTG-EXEC-007`) and loss reporting | ✅ |
+| Reverse verification | ✅ |
+| Round-trip tests PostgreSQL → Neo4j → PostgreSQL (existing and created tables), resume, graph shapes that do not fit tables | ✅ |
+| Reverse plan conformance case through Go, C#, Python and TypeScript | ✅ all pass |
 
 ## Milestone 6 — Production hardening
 
