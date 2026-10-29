@@ -88,3 +88,36 @@ rtogtor failures --run-id <run-id>
 
 Every command accepts `--format json`. Run state lives in `.rtogtor/` by
 default (`--state-dir` to change it).
+
+## The other way: Neo4j → PostgreSQL
+
+A mapping with `direction: graph-to-relational` reads nodes and writes rows.
+It uses the same format: each entity maps nodes with all its `labels` to
+rows of its `table`, and each foreign-key relationship fills the owner's
+foreign-key columns from the node at the other end. The semantics are
+recorded in [ADR-0006](adr/0006-graph-to-relational-semantics.md).
+
+```bash
+export GRAPH_URL='neo4j://neo4j:<password>@localhost:7687'
+export TARGET_URL='postgres://user:<password>@localhost:5432/shop'
+
+rtogtor inspect  --source-env GRAPH_URL                      # labels and property types
+rtogtor validate --mapping examples/ecommerce/mapping-reverse.yaml
+rtogtor plan     --mapping examples/ecommerce/mapping-reverse.yaml --source-env GRAPH_URL --dest-env TARGET_URL
+rtogtor migrate  --mapping examples/ecommerce/mapping-reverse.yaml --source-env GRAPH_URL --dest-env TARGET_URL --dry-run
+rtogtor migrate  --mapping examples/ecommerce/mapping-reverse.yaml --source-env GRAPH_URL --dest-env TARGET_URL
+rtogtor verify   --run-id <run-id> --source-env GRAPH_URL --dest-env TARGET_URL
+```
+
+- Planning inspects the destination too, so `--dest-env` is needed even for
+  a dry run.
+- Destination tables must exist with a primary key or unique constraint on
+  the mapping key, unless `destination.createTables: true`; the plan then
+  shows the `CREATE TABLE` statements before anything runs.
+- Graph data that does not fit a table is never changed silently: duplicate
+  keys (`RTG-EXEC-006`), several relationships for one foreign key
+  (`RTG-EXEC-005`), a relationship to the wrong kind of node
+  (`RTG-EXEC-002`) and values PostgreSQL would round (`RTG-EXEC-007`) each
+  become failed records listed by `rtogtor failures`.
+- Index the key properties of large labels in Neo4j first
+  ([limitations](limitations.md#neo4j--postgresql)).

@@ -22,23 +22,26 @@ public sealed record class EntityCheck
     [JsonPropertyName("entity")]
     public required string Entity { get; init; }
 
+    /// <summary>
+    /// The entity's primary label.
+    /// </summary>
     [JsonPropertyName("label")]
     public required string Label { get; init; }
 
     /// <summary>
-    /// Source rows with a non-null key.
+    /// Source records with a non-null key: rows (relational source) or nodes (graph source).
     /// </summary>
-    [JsonPropertyName("sourceRows")]
-    public required long SourceRows { get; init; }
+    [JsonPropertyName("sourceCount")]
+    public required long SourceCount { get; init; }
 
     /// <summary>
-    /// Nodes carrying the entity's primary label.
+    /// Destination records: nodes carrying the entity's primary label, or rows of its table.
     /// </summary>
-    [JsonPropertyName("destinationNodes")]
-    public required long DestinationNodes { get; init; }
+    [JsonPropertyName("destinationCount")]
+    public required long DestinationCount { get; init; }
 
     /// <summary>
-    /// Source rows whose identity has no node.
+    /// Source records whose key has no destination record.
     /// </summary>
     [JsonPropertyName("missing")]
     public required long Missing { get; init; }

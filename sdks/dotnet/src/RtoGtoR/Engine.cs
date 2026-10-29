@@ -70,20 +70,28 @@ public sealed class Engine : IAsyncDisposable
         return CallAsync<ValidateMappingResult>("validateMapping", new { mapping = mapping.Json }, cancellationToken);
     }
 
-    /// <summary>Inspects a PostgreSQL database's schema (read-only).</summary>
+    /// <summary>Inspects a PostgreSQL or Neo4j database's schema (read-only). Schemas apply to PostgreSQL.</summary>
     public Task<SchemaMetadata> InspectAsync(Connection source, IEnumerable<string>? schemas = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(source);
         return CallAsync<SchemaMetadata>("inspect", new { source = source.ToWire(null), schemas = schemas?.ToArray() }, cancellationToken);
     }
 
-    /// <summary>Plans a mapping against inspected metadata, without connecting to any database.</summary>
-    public Task<Plan> PlanAsync(Mapping mapping, SchemaMetadata sourceMetadata, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Plans a mapping against inspected metadata, without connecting to any database.
+    /// Graph-to-relational mappings also need the destination's metadata (its existing tables).
+    /// </summary>
+    public Task<Plan> PlanAsync(Mapping mapping, SchemaMetadata sourceMetadata, CancellationToken cancellationToken = default) =>
+        PlanAsync(mapping, sourceMetadata, null, cancellationToken);
+
+    /// <inheritdoc cref="PlanAsync(Mapping, SchemaMetadata, CancellationToken)"/>
+    public Task<Plan> PlanAsync(Mapping mapping, SchemaMetadata sourceMetadata, SchemaMetadata? destinationMetadata, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(mapping);
         ArgumentNullException.ThrowIfNull(sourceMetadata);
-        var metadata = JsonSerializer.SerializeToElement(sourceMetadata, RtoGtoRJson.Options);
-        return CallAsync<Plan>("plan", new { mapping = mapping.Json, sourceMetadata = metadata }, cancellationToken);
+        var source = JsonSerializer.SerializeToElement(sourceMetadata, RtoGtoRJson.Options);
+        JsonElement? destination = destinationMetadata is null ? null : JsonSerializer.SerializeToElement(destinationMetadata, RtoGtoRJson.Options);
+        return CallAsync<Plan>("plan", new { mapping = mapping.Json, sourceMetadata = source, destinationMetadata = destination }, cancellationToken);
     }
 
     /// <summary>Reads a run's report.</summary>

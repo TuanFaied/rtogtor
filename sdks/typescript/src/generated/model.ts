@@ -58,12 +58,13 @@ export interface Entity {
 
 export interface EntityCheck {
   entity: string;
+  /** The entity's primary label. */
   label: string;
-  /** Source rows with a non-null key. */
-  sourceRows: number;
-  /** Nodes carrying the entity's primary label. */
-  destinationNodes: number;
-  /** Source rows whose identity has no node. */
+  /** Source records with a non-null key: rows (relational source) or nodes (graph source). */
+  sourceCount: number;
+  /** Destination records: nodes carrying the entity's primary label, or rows of its table. */
+  destinationCount: number;
+  /** Source records whose key has no destination record. */
   missing: number;
   /** Up to 10 keys of missing rows, as canonical text in key order. */
   missingKeys: string[][];
@@ -99,6 +100,13 @@ export interface Field {
   element?: string;
   nativeType: string;
   nullable: boolean;
+  /**
+   * Destination decimal scale, when declared: values with more fractional digits lose
+   * precision.
+   */
+  scale?: number;
+  /** Destination fractional-second digits for temporal columns. */
+  fractionalDigits?: number;
 }
 
 export interface ForeignKey {
@@ -109,6 +117,28 @@ export interface ForeignKey {
   referencedColumns: string[];
   onDelete: string;
   onUpdate: string;
+}
+
+/** How a foreign key is filled from a relationship in graph → relational migrations. */
+export interface ForeignKeyLoad {
+  relationship: string;
+  relationshipType: string;
+  /**
+   * From the owner node: 'outgoing' for (owner)-[:TYPE]->(referenced), 'incoming' for
+   * (referenced)-[:TYPE]->(owner).
+   */
+  direction: string;
+  references: string;
+  referencedLabels: string[];
+  /** Key properties of the referenced node, in key order. */
+  referencedKey: Field[];
+  /** Destination foreign-key columns, in key order. */
+  columns: Field[];
+  /**
+   * True for self-references and cycles: filled by an update-foreign-keys step after all rows
+   * exist.
+   */
+  deferred: boolean;
 }
 
 export interface GraphProperty {
@@ -214,6 +244,11 @@ export interface MappingEndpoint {
   schema?: string;
   /** Neo4j database name. Defaults to the server's default database. */
   database?: string;
+  /**
+   * Relational destination only: create missing tables (CREATE TABLE IF NOT EXISTS, shown in
+   * the plan). Existing tables are never altered. Default false.
+   */
+  createTables?: boolean;
 }
 
 export interface MetadataTable {
@@ -235,11 +270,12 @@ export interface NodeRef {
 }
 
 /**
- * Output of `rtogtor plan`. Built deterministically from a mapping, inspected source
- * metadata and the destination's type rules: the same inputs give byte-identical RFC 8785
- * canonical JSON. Plans never contain credentials, host names or server versions. Steps are
- * listed in execution order: identity constraints, then node loads in mapping order, then
- * relationship loads in mapping order.
+ * Output of `rtogtor plan`. Built deterministically from a mapping, inspected metadata and
+ * the destination's type rules: the same inputs give byte-identical RFC 8785 canonical JSON.
+ * Plans never contain credentials, host names or server versions. Relational → graph steps
+ * run in order: identity constraints, node loads, relationship loads. Graph → relational
+ * steps run in order: table creation, row loads in foreign-key dependency order, deferred
+ * foreign-key updates.
  */
 export interface Plan {
   specVersion: string;
@@ -292,6 +328,10 @@ export interface PlanStep {
   to?: NodeRef;
   foreignKey?: RelationshipsStepForeignKey;
   selfReference?: boolean;
+  /** The CREATE TABLE IF NOT EXISTS statement that will run. */
+  sql?: string;
+  /** Foreign keys filled while inserting (non-deferred). Absent when there are none. */
+  foreignKeys?: ForeignKeyLoad[];
 }
 
 export interface PlanTable {
@@ -556,7 +596,8 @@ export interface StepState {
   done: boolean;
   /**
    * Canonical text of the key of the last row in the last committed batch, in key order
-   * (exclusive resume point). null before the first commit.
+   * (exclusive resume point); graph sources append the node's element ID. null before the
+   * first commit.
    */
   cursor: string[] | null;
   /** Committed batches; also the number of the next batch. */

@@ -113,6 +113,23 @@ describe("conformance", () => {
     expect(got).toBe(want);
     expect(plan.steps).toHaveLength(13);
   });
+
+  it("e-commerce reverse plan case", async () => {
+    const mapping = await Mapping.fromFile(repoPath("examples", "ecommerce", "mapping-reverse.yaml"));
+    const read = (name: string) =>
+      readJson("conformance", "cases", "ecommerce-reverse", name) as SchemaMetadata;
+    const plan = await engine.plan(mapping, read("source-metadata.json"), {
+      destinationMetadata: read("destination-metadata.json"),
+    });
+    const got = jcs(plan);
+    const want = readFileSync(
+      repoPath("conformance", "cases", "ecommerce-reverse", "expected-plan.json"),
+      "utf8",
+    ).trimEnd();
+    record("cases/ecommerce-reverse/plan", got === want);
+    expect(got).toBe(want);
+    expect(plan.steps).toHaveLength(10);
+  });
 });
 
 /** rtg-id/v1 (specs/identity.md §3), written independently of the engine. */

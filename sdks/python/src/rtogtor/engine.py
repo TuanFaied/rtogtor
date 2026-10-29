@@ -66,14 +66,27 @@ class Engine:
     def inspect(
         self, source: Connection, schemas: Iterable[str] | None = None, *, _cancel: threading.Event | None = None
     ) -> SchemaMetadata:
-        """Inspects a PostgreSQL database's schema (read-only)."""
+        """Inspects a PostgreSQL or Neo4j database's schema (read-only). ``schemas`` apply to PostgreSQL."""
         params = {"source": source._to_wire(None), "schemas": list(schemas) if schemas is not None else None}
         return SchemaMetadata.model_validate(self._call("inspect", params, _cancel))
 
-    def plan(self, mapping: RtgMapping, source_metadata: SchemaMetadata) -> Plan:
-        """Plans a mapping against inspected metadata, without connecting to any database."""
-        metadata = source_metadata.model_dump(mode="json", by_alias=True, exclude_unset=True)
-        return Plan.model_validate(self._call("plan", {"mapping": mapping._wire(), "sourceMetadata": metadata}))
+    def plan(
+        self,
+        mapping: RtgMapping,
+        source_metadata: SchemaMetadata,
+        destination_metadata: SchemaMetadata | None = None,
+    ) -> Plan:
+        """Plans a mapping against inspected metadata, without connecting to any database.
+
+        Graph-to-relational mappings also need ``destination_metadata`` (the existing tables).
+        """
+        params: dict[str, Any] = {
+            "mapping": mapping._wire(),
+            "sourceMetadata": source_metadata.model_dump(mode="json", by_alias=True, exclude_unset=True),
+        }
+        if destination_metadata is not None:
+            params["destinationMetadata"] = destination_metadata.model_dump(mode="json", by_alias=True, exclude_unset=True)
+        return Plan.model_validate(self._call("plan", params))
 
     def report(self, run_id: str, state_dir: str | None = None) -> Report:
         """Reads a run's report."""

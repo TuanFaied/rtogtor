@@ -71,12 +71,17 @@ class Entity(_Model):
 class EntityCheck(_Model):
     entity: str = _Field(alias="entity")
     label: str = _Field(alias="label")
-    source_rows: int = _Field(alias="sourceRows")
-    """Source rows with a non-null key."""
-    destination_nodes: int = _Field(alias="destinationNodes")
-    """Nodes carrying the entity's primary label."""
+    """The entity's primary label."""
+    source_count: int = _Field(alias="sourceCount")
+    """Source records with a non-null key: rows (relational source) or nodes (graph
+    source).
+    """
+    destination_count: int = _Field(alias="destinationCount")
+    """Destination records: nodes carrying the entity's primary label, or rows of its
+    table.
+    """
     missing: int = _Field(alias="missing")
-    """Source rows whose identity has no node."""
+    """Source records whose key has no destination record."""
     missing_keys: list[list[str]] = _Field(alias="missingKeys")
     """Up to 10 keys of missing rows, as canonical text in key order."""
 
@@ -111,6 +116,12 @@ class Field(_Model):
     element: str | None = _Field(default=None, alias="element")
     native_type: str = _Field(alias="nativeType")
     nullable: bool = _Field(alias="nullable")
+    scale: int | None = _Field(default=None, alias="scale")
+    """Destination decimal scale, when declared: values with more fractional digits lose
+    precision.
+    """
+    fractional_digits: int | None = _Field(default=None, alias="fractionalDigits")
+    """Destination fractional-second digits for temporal columns."""
 
 
 class ForeignKey(_Model):
@@ -121,6 +132,27 @@ class ForeignKey(_Model):
     referenced_columns: list[str] = _Field(alias="referencedColumns")
     on_delete: str = _Field(alias="onDelete")
     on_update: str = _Field(alias="onUpdate")
+
+
+class ForeignKeyLoad(_Model):
+    """How a foreign key is filled from a relationship in graph → relational migrations."""
+
+    relationship: str = _Field(alias="relationship")
+    relationship_type: str = _Field(alias="relationshipType")
+    direction: str = _Field(alias="direction")
+    """From the owner node: 'outgoing' for (owner)-[:TYPE]->(referenced), 'incoming' for
+    (referenced)-[:TYPE]->(owner).
+    """
+    references: str = _Field(alias="references")
+    referenced_labels: list[str] = _Field(alias="referencedLabels")
+    referenced_key: list[Field] = _Field(alias="referencedKey")
+    """Key properties of the referenced node, in key order."""
+    columns: list[Field] = _Field(alias="columns")
+    """Destination foreign-key columns, in key order."""
+    deferred: bool = _Field(alias="deferred")
+    """True for self-references and cycles: filled by an update-foreign-keys step after all
+    rows exist.
+    """
 
 
 class GraphProperty(_Model):
@@ -223,6 +255,10 @@ class MappingEndpoint(_Model):
     """PostgreSQL schema. Defaults to 'public'."""
     database: str | None = _Field(default=None, alias="database")
     """Neo4j database name. Defaults to the server's default database."""
+    create_tables: bool | None = _Field(default=None, alias="createTables")
+    """Relational destination only: create missing tables (CREATE TABLE IF NOT EXISTS,
+    shown in the plan). Existing tables are never altered. Default false.
+    """
 
 
 class MetadataTable(_Model):
@@ -246,11 +282,12 @@ class NodeRef(_Model):
 
 
 class Plan(_Model):
-    """Output of `rtogtor plan`. Built deterministically from a mapping, inspected source
-    metadata and the destination's type rules: the same inputs give byte-identical RFC
-    8785 canonical JSON. Plans never contain credentials, host names or server versions.
-    Steps are listed in execution order: identity constraints, then node loads in
-    mapping order, then relationship loads in mapping order.
+    """Output of `rtogtor plan`. Built deterministically from a mapping, inspected metadata
+    and the destination's type rules: the same inputs give byte-identical RFC 8785
+    canonical JSON. Plans never contain credentials, host names or server versions.
+    Relational → graph steps run in order: identity constraints, node loads,
+    relationship loads. Graph → relational steps run in order: table creation, row
+    loads in foreign-key dependency order, deferred foreign-key updates.
     """
 
     spec_version: str = _Field(alias="specVersion")
@@ -305,6 +342,10 @@ class PlanStep(_Model):
     to: NodeRef | None = _Field(default=None, alias="to")
     foreign_key: RelationshipsStepForeignKey | None = _Field(default=None, alias="foreignKey")
     self_reference: bool | None = _Field(default=None, alias="selfReference")
+    sql: str | None = _Field(default=None, alias="sql")
+    """The CREATE TABLE IF NOT EXISTS statement that will run."""
+    foreign_keys: list[ForeignKeyLoad] | None = _Field(default=None, alias="foreignKeys")
+    """Foreign keys filled while inserting (non-deferred). Absent when there are none."""
 
 
 class PlanTable(_Model):
@@ -563,7 +604,8 @@ class StepState(_Model):
     done: bool = _Field(alias="done")
     cursor: list[str] | None = _Field(alias="cursor")
     """Canonical text of the key of the last row in the last committed batch, in key order
-    (exclusive resume point). null before the first commit.
+    (exclusive resume point); graph sources append the node's element ID. null before
+    the first commit.
     """
     batches: int = _Field(alias="batches")
     """Committed batches; also the number of the next batch."""
@@ -635,6 +677,7 @@ __all__ = [
     "FailuresResult",
     "Field",
     "ForeignKey",
+    "ForeignKeyLoad",
     "GraphProperty",
     "HandshakeResult",
     "Identity",

@@ -50,6 +50,8 @@ type Endpoint struct {
 	Kind     string `json:"kind"`
 	Schema   string `json:"schema,omitempty"`
 	Database string `json:"database,omitempty"`
+	// CreateTables lets a relational destination create missing tables.
+	CreateTables bool `json:"createTables,omitempty"`
 }
 
 // Identity strategies.

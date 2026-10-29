@@ -195,6 +195,14 @@
       "remediation": "Check the connecting user's privileges on the catalog and the inspected schemas. If the failure persists, report it with the SQLSTATE."
     },
     {
+      "code": "RTG-PG-002",
+      "title": "Row rejected by PostgreSQL",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "PostgreSQL rejected a row (for example a NOT NULL, check or foreign-key violation, or a value out of range). The message includes the SQLSTATE.",
+      "remediation": "Fix the source record or the destination constraint, then resume or re-run."
+    },
+    {
       "code": "RTG-PLAN-001",
       "title": "Mapped table not found",
       "severity": "error",
@@ -251,6 +259,38 @@
       "remediation": "Map foreign keys only onto keys of the same logical type, in the same order."
     },
     {
+      "code": "RTG-PLAN-008",
+      "title": "Destination table has no matching unique key",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "Idempotent writes use INSERT … ON CONFLICT on the entity's key, which needs a primary key or unique constraint on exactly the key columns of the destination table.",
+      "remediation": "Add a primary key or unique constraint on the key columns, or change the mapping's key."
+    },
+    {
+      "code": "RTG-PLAN-009",
+      "title": "Destination table not found",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A table named by the mapping does not exist in the destination, and destination.createTables is not set.",
+      "remediation": "Create the table, or set destination.createTables: true to have the plan create missing tables."
+    },
+    {
+      "code": "RTG-PLAN-010",
+      "title": "Deferred foreign key is NOT NULL",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A self-referencing or cyclic foreign key is filled after all rows are inserted, so its columns must allow NULL until then, but the destination column is NOT NULL.",
+      "remediation": "Allow NULL in the column (or make the constraint deferrable and the column nullable), or remove the relationship from the mapping."
+    },
+    {
+      "code": "RTG-PLAN-011",
+      "title": "Source graph does not match the mapping everywhere",
+      "severity": "warning",
+      "retryable": false,
+      "meaning": "The inspected graph lacks a mapped label or property, holds values of other types for a mapped property, or has no index for key-ordered reads. Affected records will fail individually, or reads will be slow.",
+      "remediation": "Check the message; fix the data or the mapping, or create an index on the key properties."
+    },
+    {
       "code": "RTG-EXEC-001",
       "title": "Record could not be converted",
       "severity": "error",
@@ -281,6 +321,30 @@
       "retryable": true,
       "meaning": "The run stopped before completing (cancellation or an injected fault). Every committed batch is checkpointed.",
       "remediation": "Resume the run with `rtogtor migrate --resume <run-id>`."
+    },
+    {
+      "code": "RTG-EXEC-005",
+      "title": "More than one related node for a foreign key",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A node has several relationships of a type that maps to a foreign key, but a foreign-key column holds one reference. The record was not written.",
+      "remediation": "Remove the extra relationships, or map them to a junction table when that is supported."
+    },
+    {
+      "code": "RTG-EXEC-006",
+      "title": "Duplicate key in the source",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "Another node of the same entity has the same key values. Only the first one (in key order) was written; rows are never merged.",
+      "remediation": "Make the key properties unique in the source (for example with a uniqueness constraint)."
+    },
+    {
+      "code": "RTG-EXEC-007",
+      "title": "Value would lose precision in the destination",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A value has more fractional digits than its destination column keeps (for example nanoseconds into a microsecond timestamp, or a decimal beyond the column's scale), and no allow rule or flexible policy permits rounding.",
+      "remediation": "Widen the destination column, round the source data, or add a policies.allow entry of kind precision."
     },
     {
       "code": "RTG-RUN-001",

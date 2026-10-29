@@ -143,4 +143,20 @@ public sealed class ConformanceTests : IClassFixture<ConformanceTests.Fixture>
         Assert.Equal(13, plan.Steps.Count);
         Assert.True(plan.Steps.Single(s => s.Id == "relationships:CustomerReferredBy").SelfReference);
     }
+
+    /// <summary>The graph-to-relational plan must also round-trip through the typed model.</summary>
+    [Fact]
+    public async Task Ecommerce_reverse_plan_case()
+    {
+        var mapping = await Mapping.FromFileAsync(Repo.Path("examples", "ecommerce", "mapping-reverse.yaml"));
+        var source = RtoGtoRJson.Deserialize<SchemaMetadata>(Repo.Read("conformance", "cases", "ecommerce-reverse", "source-metadata.json"));
+        var destination = RtoGtoRJson.Deserialize<SchemaMetadata>(Repo.Read("conformance", "cases", "ecommerce-reverse", "destination-metadata.json"));
+        var plan = await _fx.Engine.PlanAsync(mapping, source, destination);
+
+        var got = Jcs.Canonicalize(JsonNode.Parse(RtoGtoRJson.Serialize(plan)));
+        var want = Repo.Read("conformance", "cases", "ecommerce-reverse", "expected-plan.json").TrimEnd('\n');
+        _fx.Record("cases/ecommerce-reverse/plan", got == want);
+        Assert.Equal(want, got);
+        Assert.Equal(10, plan.Steps.Count);
+    }
 }

@@ -69,18 +69,18 @@ func Verify(ctx context.Context, plan *planning.Plan, src Source, dst Destinatio
 		}
 		v.Entities = append(v.Entities, *check)
 		if check.Missing > 0 {
-			issue(rtgerr.VerifyMissingEntity, step.Entity, "%d of %d rows have no :%s node", check.Missing, check.SourceRows, check.Label)
+			issue(rtgerr.VerifyMissingEntity, step.Entity, "%d of %d rows have no :%s node", check.Missing, check.SourceCount, check.Label)
 		}
 		if _, seen := labelRows[check.Label]; !seen {
 			labelOrder = append(labelOrder, check.Label)
 		}
-		labelRows[check.Label] += check.SourceRows - check.Missing
+		labelRows[check.Label] += check.SourceCount - check.Missing
 	}
 	for _, label := range labelOrder {
 		var nodes int64
 		for _, e := range v.Entities {
 			if e.Label == label {
-				nodes = e.DestinationNodes
+				nodes = e.DestinationCount
 			}
 		}
 		if nodes != labelRows[label] {
@@ -159,8 +159,8 @@ func verifyEntity(ctx context.Context, plan *planning.Plan, step *planning.Step,
 	if err != nil {
 		return nil, err
 	}
-	check.SourceRows = rows
-	if check.DestinationNodes, err = dst.CountNodes(ctx, check.Label); err != nil {
+	check.SourceCount = rows
+	if check.DestinationCount, err = dst.CountNodes(ctx, check.Label); err != nil {
 		return nil, err
 	}
 

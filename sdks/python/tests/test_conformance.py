@@ -106,6 +106,20 @@ def test_ecommerce_plan_case(engine: Engine) -> None:
     assert len(plan.steps) == 13
 
 
+def test_ecommerce_reverse_plan_case(engine: Engine) -> None:
+    """The graph-to-relational plan must also round-trip through the typed model."""
+    mapping = Mapping.from_file(repo_path("examples", "ecommerce", "mapping-reverse.yaml"))
+    case = ("conformance", "cases", "ecommerce-reverse")
+    source = SchemaMetadata.model_validate(read_json(*case, "source-metadata.json"))
+    destination = SchemaMetadata.model_validate(read_json(*case, "destination-metadata.json"))
+    plan = engine.plan(mapping, source, destination)
+    got = jcs(plan.model_dump(mode="json", by_alias=True, exclude_unset=True))
+    want = repo_path(*case, "expected-plan.json").read_text(encoding="utf-8").rstrip("\n")
+    record("cases/ecommerce-reverse/plan", got == want)
+    assert got == want
+    assert len(plan.steps) == 10
+
+
 # --- Property: the engine's identities match an independent implementation -------
 
 

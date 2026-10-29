@@ -167,6 +167,14 @@ public sealed record class MappingEndpoint
     [JsonPropertyName("database")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Database { get; init; }
+
+    /// <summary>
+    /// Relational destination only: create missing tables (CREATE TABLE IF NOT EXISTS, shown in
+    /// the plan). Existing tables are never altered. Default false.
+    /// </summary>
+    [JsonPropertyName("createTables")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? CreateTables { get; init; }
 }
 
 public sealed record class Policies

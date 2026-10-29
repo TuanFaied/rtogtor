@@ -372,7 +372,7 @@ func TestHashIsFormatIndependent(t *testing.T) {
 	}
 }
 
-func TestGraphToRelationalStillWarns(t *testing.T) {
+func TestGraphToRelationalIsExecutable(t *testing.T) {
 	doc := `
 specVersion: "0.1.0"
 name: reverse
@@ -381,7 +381,7 @@ source: { kind: neo4j }
 destination: { kind: postgresql }
 entities:` + customer
 	_, issues := Decode([]byte(doc), FormatYAML)
-	if issues.HasErrors() || len(issues) != 1 || issues[0].Code != rtgerr.MapDirectionPending {
+	if len(issues) != 0 {
 		t.Errorf("got %v", codes(issues))
 	}
 }

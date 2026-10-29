@@ -29,7 +29,7 @@ verification, err := mig.Verify(ctx, report.RunID, rtogtor.DefaultStateDir)
 |---|---|
 | Connection | `PostgreSQL(url)`, `PostgreSQLFromEnv(name)`, `Neo4j(uri, auth)`, `Neo4jFromEnv(name)`; `String()` never prints credentials |
 | Mapping | `LoadMapping(path)`, `DecodeMapping(data, format)` |
-| Plan | `Migration.Plan(ctx)`, `PlanFromMetadata(mapping, metadata)` (offline) |
+| Plan | `Migration.Plan(ctx)`, `PlanFromMetadata(mapping, source, destination)` (offline; `destination` is the inspected PostgreSQL destination, needed for graph-to-relational mappings, `nil` otherwise) |
 | Run | `Migration.Run(ctx, RunOptions)` returns `*Report` |
 | Run state | `LoadRunState`, `LoadReport`, `LoadFailures` |
 | Errors | `*rtgerr.Error` with `Code`, `Severity()`, `Retryable()`; `rtgerr.List` for several |

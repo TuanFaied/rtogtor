@@ -29,6 +29,65 @@ public sealed record class Field
 
     [JsonPropertyName("nullable")]
     public required bool Nullable { get; init; }
+
+    /// <summary>
+    /// Destination decimal scale, when declared: values with more fractional digits lose
+    /// precision.
+    /// </summary>
+    [JsonPropertyName("scale")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? Scale { get; init; }
+
+    /// <summary>
+    /// Destination fractional-second digits for temporal columns.
+    /// </summary>
+    [JsonPropertyName("fractionalDigits")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? FractionalDigits { get; init; }
+}
+
+/// <summary>
+/// How a foreign key is filled from a relationship in graph → relational migrations.
+/// </summary>
+public sealed record class ForeignKeyLoad
+{
+    [JsonPropertyName("relationship")]
+    public required string Relationship { get; init; }
+
+    [JsonPropertyName("relationshipType")]
+    public required string RelationshipType { get; init; }
+
+    /// <summary>
+    /// From the owner node: 'outgoing' for (owner)-[:TYPE]-&gt;(referenced), 'incoming' for
+    /// (referenced)-[:TYPE]-&gt;(owner).
+    /// </summary>
+    [JsonPropertyName("direction")]
+    public required string Direction { get; init; }
+
+    [JsonPropertyName("references")]
+    public required string References { get; init; }
+
+    [JsonPropertyName("referencedLabels")]
+    public required global::System.Collections.Generic.IReadOnlyList<string> ReferencedLabels { get; init; }
+
+    /// <summary>
+    /// Key properties of the referenced node, in key order.
+    /// </summary>
+    [JsonPropertyName("referencedKey")]
+    public required global::System.Collections.Generic.IReadOnlyList<Field> ReferencedKey { get; init; }
+
+    /// <summary>
+    /// Destination foreign-key columns, in key order.
+    /// </summary>
+    [JsonPropertyName("columns")]
+    public required global::System.Collections.Generic.IReadOnlyList<Field> Columns { get; init; }
+
+    /// <summary>
+    /// True for self-references and cycles: filled by an update-foreign-keys step after all rows
+    /// exist.
+    /// </summary>
+    [JsonPropertyName("deferred")]
+    public required bool Deferred { get; init; }
 }
 
 public sealed record class NodeRef
@@ -41,11 +100,12 @@ public sealed record class NodeRef
 }
 
 /// <summary>
-/// Output of `rtogtor plan`. Built deterministically from a mapping, inspected source
-/// metadata and the destination's type rules: the same inputs give byte-identical RFC 8785
-/// canonical JSON. Plans never contain credentials, host names or server versions. Steps are
-/// listed in execution order: identity constraints, then node loads in mapping order, then
-/// relationship loads in mapping order.
+/// Output of `rtogtor plan`. Built deterministically from a mapping, inspected metadata and
+/// the destination's type rules: the same inputs give byte-identical RFC 8785 canonical JSON.
+/// Plans never contain credentials, host names or server versions. Relational → graph steps
+/// run in order: identity constraints, node loads, relationship loads. Graph → relational
+/// steps run in order: table creation, row loads in foreign-key dependency order, deferred
+/// foreign-key updates.
 /// </summary>
 public sealed record class Plan
 {
@@ -188,6 +248,20 @@ public sealed record class PlanStep
     [JsonPropertyName("selfReference")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? SelfReference { get; init; }
+
+    /// <summary>
+    /// The CREATE TABLE IF NOT EXISTS statement that will run.
+    /// </summary>
+    [JsonPropertyName("sql")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Sql { get; init; }
+
+    /// <summary>
+    /// Foreign keys filled while inserting (non-deferred). Absent when there are none.
+    /// </summary>
+    [JsonPropertyName("foreignKeys")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public global::System.Collections.Generic.IReadOnlyList<ForeignKeyLoad>? ForeignKeys { get; init; }
 }
 
 public sealed record class PlanTable

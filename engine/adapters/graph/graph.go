@@ -51,6 +51,13 @@ type TypeSupport interface {
 	StorageLoss(t, elem ir.LogicalType) LossKind
 	// StoredAs names the database type values are stored as, for plans.
 	StoredAs(t, elem ir.LogicalType) string
+	// ReadableFrom lists the database property types a logical type can be
+	// read from (graph → relational), as named by schema inspection.
+	ReadableFrom(t, elem ir.LogicalType) []string
+	// KeyStoredAs names the only property type a key property of the
+	// logical type may have, so key-ordered reads compare like with like.
+	// ok is false when the type cannot be a key in key-ordered reads.
+	KeyStoredAs(t ir.LogicalType) (storedAs string, ok bool)
 }
 
 // Property is a value to store, with its logical type.
@@ -97,6 +104,72 @@ type RelationshipBatch struct {
 	Rows       []RelationshipRow
 }
 
+// NodeField is a node property to read, with the logical type to produce.
+type NodeField struct {
+	Property string
+	Type     ir.LogicalType
+	Element  ir.LogicalType
+}
+
+// RelatedRead reads, for every node, the nodes at the other end of its
+// relationships of one type.
+type RelatedRead struct {
+	Type string
+	// Outgoing reads (n)-[:Type]->(m); otherwise (n)<-[:Type]-(m).
+	Outgoing bool
+	// Labels the related node must carry to match.
+	Labels []string
+	// Key properties of the related node. They must have the type
+	// TypeSupport.KeyStoredAs names to match.
+	Key []NodeField
+}
+
+// NodeCursor is the exclusive position of a key-ordered read.
+type NodeCursor struct {
+	Key       []ir.Value
+	ElementID string
+}
+
+// NodeReadRequest reads one batch of nodes ordered by key, then element ID.
+type NodeReadRequest struct {
+	// Labels the nodes must all carry.
+	Labels []string
+	// Key properties define the order and the cursor. Nodes missing a key
+	// property, or holding it with another type than TypeSupport.KeyStoredAs
+	// names, are never returned (see CountNodesWithoutKey).
+	Key        []NodeField
+	Properties []NodeField
+	Related    []RelatedRead
+	// After is the exclusive cursor; nil starts at the beginning.
+	After *NodeCursor
+	Limit int
+}
+
+// RelatedNode is one node at the other end of a relationship.
+type RelatedNode struct {
+	// Matches reports whether the node has every RelatedRead label and key
+	// property. Key is set only when it matches.
+	Matches bool
+	Key     []ir.Value
+}
+
+// NodeRecord is one node read from a graph source.
+type NodeRecord struct {
+	ElementID string
+	// Key holds the key values in request order. It is always set.
+	Key []ir.Value
+	// Values holds the request's properties, in order. It is nil when Err
+	// is set.
+	Values []ir.Value
+	// Related holds, per RelatedRead, up to two related nodes: enough to
+	// tell none, one, and more than one apart.
+	Related [][]RelatedNode
+	// Err reports a value that could not be converted to its logical type
+	// (RTG-EXEC-001). The record is still returned, so the caller can
+	// record it and advance the cursor past it.
+	Err error
+}
+
 // ServerInfo describes the connected server. It never holds credentials.
 type ServerInfo struct {
 	Product  string
@@ -137,6 +210,17 @@ type Adapter interface {
 	CountRelationships(ctx context.Context, relType, fromLabel, toLabel string) (int64, error)
 	// MissingIDs returns the ids that have no node with the label.
 	MissingIDs(ctx context.Context, label, property string, ids []string) ([]string, error)
+	// ReadNodes returns up to req.Limit nodes after req.After, ordered by
+	// key then element ID, in one read transaction. Fewer nodes than the
+	// limit means the end was reached.
+	ReadNodes(ctx context.Context, req NodeReadRequest) ([]NodeRecord, error)
+	// CountKeyedNodes counts nodes with all labels that ReadNodes returns.
+	CountKeyedNodes(ctx context.Context, labels []string, key []NodeField) (int64, error)
+	// CountNodesWithoutKey counts nodes with all labels that ReadNodes skips.
+	CountNodesWithoutKey(ctx context.Context, labels []string, key []NodeField) (int64, error)
+	// CountRelated counts nodes with all labels and a key that have exactly
+	// one related node of rel, which matches.
+	CountRelated(ctx context.Context, labels []string, key []NodeField, rel RelatedRead) (int64, error)
 	// Close releases the connection.
 	Close() error
 }

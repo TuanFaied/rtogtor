@@ -1,0 +1,110 @@
+# RtoGtoR mapping: e-commerce Neo4j -> PostgreSQL
+# The reverse of mapping.yaml: the same entities and relationships, read from
+# the graph that mapping.yaml produces and written back to tables.
+# Validate with: rtogtor validate --mapping examples/ecommerce/mapping-reverse.yaml
+specVersion: "0.1.0"
+name: ecommerce-reverse
+description: Customers, products, orders and order lines from a property graph back to tables.
+direction: graph-to-relational
+
+source:
+  kind: neo4j
+destination:
+  kind: postgresql
+  schema: public
+  # Tables that do not exist are created from the plan's DDL. Existing
+  # tables are checked and never altered.
+  createTables: true
+
+identity:
+  strategy: hash
+  property: rtg_id
+
+policies:
+  loss: strict
+
+entities:
+  - name: Customer
+    table: customers
+    labels: [Customer]
+    key: [id]
+    properties:
+      - { column: id,         property: id,        type: int64 }
+      - { column: email,      property: email,     type: string }
+      - { column: full_name,  property: fullName,  type: string }
+      - { column: created_at, property: createdAt, type: timestamptz }
+
+  - name: Product
+    table: products
+    labels: [Product]
+    key: [id]
+    properties:
+      - { column: id,    property: id,    type: int64 }
+      - { column: sku,   property: sku,   type: string }
+      - { column: name,  property: name,  type: string }
+      - { column: price, property: price, type: decimal }
+
+  - name: Order
+    table: orders
+    labels: [Order]
+    key: [id]
+    properties:
+      - { column: id,        property: id,       type: int64 }
+      - { column: status,    property: status,   type: string }
+      - { column: placed_at, property: placedAt, type: timestamptz }
+
+  - name: OrderItem
+    table: order_items
+    labels: [OrderItem]
+    key: [order_id, line_no]
+    properties:
+      - { column: order_id,   property: orderId,   type: int64 }
+      - { column: line_no,    property: lineNo,    type: int64 }
+      - { column: quantity,   property: quantity,  type: int64 }
+      - { column: unit_price, property: unitPrice, type: decimal }
+
+relationships:
+  # orders.customer_id from (Customer)-[:PLACED]->(Order)
+  - name: CustomerPlacedOrder
+    type: PLACED
+    foreignKey:
+      entity: Order
+      columns: [customer_id]
+      references: Customer
+      direction: referenced-to-owner
+
+  # order_items.order_id from (Order)-[:CONTAINS]->(OrderItem). order_id is
+  # also the orderId property; the two must agree.
+  - name: OrderContainsItem
+    type: CONTAINS
+    foreignKey:
+      entity: OrderItem
+      columns: [order_id]
+      references: Order
+      direction: referenced-to-owner
+
+  # order_items.product_id from (OrderItem)-[:OF_PRODUCT]->(Product)
+  - name: ItemOfProduct
+    type: OF_PRODUCT
+    foreignKey:
+      entity: OrderItem
+      columns: [product_id]
+      references: Product
+      direction: owner-to-referenced
+
+  # Self-references, filled after all rows are written.
+  - name: CustomerReferredBy
+    type: REFERRED_BY
+    foreignKey:
+      entity: Customer
+      columns: [referred_by]
+      references: Customer
+      direction: owner-to-referenced
+
+  - name: ProductVariantOf
+    type: VARIANT_OF
+    foreignKey:
+      entity: Product
+      columns: [parent_product_id]
+      references: Product
+      direction: owner-to-referenced

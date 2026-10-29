@@ -20,6 +20,7 @@ forms; the engine reproduces them in `engine/ir/vectors_test.go`.
 | Case | Contents |
 |---|---|
 | [`cases/ecommerce/`](cases/ecommerce/) | `expected-schema-metadata.json`: inspection of `examples/ecommerce/schema.sql`, with server version, database name and row estimates removed. `expected-plan.json`: the RFC 8785 canonical plan for `examples/ecommerce/mapping.yaml` built from that metadata; implementations must reproduce it byte for byte |
+| [`cases/ecommerce-reverse/`](cases/ecommerce-reverse/) | `source-metadata.json`: inspection of the graph `examples/ecommerce/mapping.yaml` writes (version and database name removed). `destination-metadata.json`: an empty `public` schema. `expected-plan.json`: the canonical graph-to-relational plan for `examples/ecommerce/mapping-reverse.yaml`, including its `CREATE TABLE` statements |
 
 Expected destination snapshots and reports, plus `runner-protocol.md`, arrive
 with the first SDK (Milestone 3).

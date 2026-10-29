@@ -156,7 +156,8 @@ public sealed record class StepState
 
     /// <summary>
     /// Canonical text of the key of the last row in the last committed batch, in key order
-    /// (exclusive resume point). null before the first commit.
+    /// (exclusive resume point); graph sources append the node's element ID. null before the
+    /// first commit.
     /// </summary>
     [JsonPropertyName("cursor")]
     public required global::System.Collections.Generic.IReadOnlyList<string>? Cursor { get; init; }

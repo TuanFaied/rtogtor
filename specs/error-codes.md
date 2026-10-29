@@ -75,6 +75,7 @@ Each code defines:
 | `RTG-CONN-001` | error | yes | Cannot connect to the database |
 | `RTG-CONN-002` | error | no | Connection settings missing or invalid |
 | `RTG-PG-001` | error | no | PostgreSQL query failed |
+| `RTG-PG-002` | error | no | Row rejected by PostgreSQL |
 | `RTG-PLAN-001` | error | no | Mapped table not found |
 | `RTG-PLAN-002` | error | no | Mapped column not found |
 | `RTG-PLAN-003` | error | no | Declared type does not match the source |
@@ -82,10 +83,17 @@ Each code defines:
 | `RTG-PLAN-005` | error | no | Lossy transformation not allowed |
 | `RTG-PLAN-006` | error | no | Feature not yet supported by this engine |
 | `RTG-PLAN-007` | error | no | Foreign key does not match the referenced key types |
+| `RTG-PLAN-008` | error | no | Destination table has no matching unique key |
+| `RTG-PLAN-009` | error | no | Destination table not found |
+| `RTG-PLAN-010` | error | no | Deferred foreign key is NOT NULL |
+| `RTG-PLAN-011` | warning | no | Source graph does not match the mapping everywhere |
 | `RTG-EXEC-001` | error | no | Record could not be converted |
 | `RTG-EXEC-002` | error | no | Relationship endpoint not found |
 | `RTG-EXEC-003` | error | yes | Batch write failed |
 | `RTG-EXEC-004` | error | yes | Run interrupted |
+| `RTG-EXEC-005` | error | no | More than one related node for a foreign key |
+| `RTG-EXEC-006` | error | no | Duplicate key in the source |
+| `RTG-EXEC-007` | error | no | Value would lose precision in the destination |
 | `RTG-RUN-001` | error | no | Run not found |
 | `RTG-RUN-002` | error | no | Mapping changed since the run started |
 | `RTG-RUN-003` | error | no | Run already completed |

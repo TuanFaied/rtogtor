@@ -41,6 +41,12 @@ class ErrorCode:
     """Batch write failed."""
     EXEC_004: Final = "RTG-EXEC-004"
     """Run interrupted."""
+    EXEC_005: Final = "RTG-EXEC-005"
+    """More than one related node for a foreign key."""
+    EXEC_006: Final = "RTG-EXEC-006"
+    """Duplicate key in the source."""
+    EXEC_007: Final = "RTG-EXEC-007"
+    """Value would lose precision in the destination."""
     ID_001: Final = "RTG-ID-001"
     """Null identity component."""
     ID_002: Final = "RTG-ID-002"
@@ -77,6 +83,8 @@ class ErrorCode:
     """Neo4j query failed."""
     PG_001: Final = "RTG-PG-001"
     """PostgreSQL query failed."""
+    PG_002: Final = "RTG-PG-002"
+    """Row rejected by PostgreSQL."""
     PLAN_001: Final = "RTG-PLAN-001"
     """Mapped table not found."""
     PLAN_002: Final = "RTG-PLAN-002"
@@ -91,6 +99,14 @@ class ErrorCode:
     """Feature not yet supported by this engine."""
     PLAN_007: Final = "RTG-PLAN-007"
     """Foreign key does not match the referenced key types."""
+    PLAN_008: Final = "RTG-PLAN-008"
+    """Destination table has no matching unique key."""
+    PLAN_009: Final = "RTG-PLAN-009"
+    """Destination table not found."""
+    PLAN_010: Final = "RTG-PLAN-010"
+    """Deferred foreign key is NOT NULL."""
+    PLAN_011: Final = "RTG-PLAN-011"
+    """Source graph does not match the mapping everywhere."""
     PROTO_001: Final = "RTG-PROTO-001"
     """Unsupported protocol version."""
     PROTO_002: Final = "RTG-PROTO-002"
@@ -145,6 +161,9 @@ ERROR_CODES: Final[dict[str, ErrorCodeInfo]] = {
     "RTG-EXEC-002": ErrorCodeInfo("RTG-EXEC-002", "Relationship endpoint not found", "error", False, "A relationship could not be created because one of its end nodes does not exist in the destination, usually because that node's own record failed.", "Fix the failed end-node record, then re-run; relationship writes are idempotent."),
     "RTG-EXEC-003": ErrorCodeInfo("RTG-EXEC-003", "Batch write failed", "error", True, "Writing a batch to the destination failed after the configured retries. The batch was not committed and no checkpoint was recorded.", "Check the destination's health, then resume the run with --resume; committed batches are not repeated."),
     "RTG-EXEC-004": ErrorCodeInfo("RTG-EXEC-004", "Run interrupted", "error", True, "The run stopped before completing (cancellation or an injected fault). Every committed batch is checkpointed.", "Resume the run with `rtogtor migrate --resume <run-id>`."),
+    "RTG-EXEC-005": ErrorCodeInfo("RTG-EXEC-005", "More than one related node for a foreign key", "error", False, "A node has several relationships of a type that maps to a foreign key, but a foreign-key column holds one reference. The record was not written.", "Remove the extra relationships, or map them to a junction table when that is supported."),
+    "RTG-EXEC-006": ErrorCodeInfo("RTG-EXEC-006", "Duplicate key in the source", "error", False, "Another node of the same entity has the same key values. Only the first one (in key order) was written; rows are never merged.", "Make the key properties unique in the source (for example with a uniqueness constraint)."),
+    "RTG-EXEC-007": ErrorCodeInfo("RTG-EXEC-007", "Value would lose precision in the destination", "error", False, "A value has more fractional digits than its destination column keeps (for example nanoseconds into a microsecond timestamp, or a decimal beyond the column's scale), and no allow rule or flexible policy permits rounding.", "Widen the destination column, round the source data, or add a policies.allow entry of kind precision."),
     "RTG-ID-001": ErrorCodeInfo("RTG-ID-001", "Null identity component", "error", False, "A key field is null, so no identity can be derived for the record.", "Ensure key fields are NOT NULL in the source, or choose a different key."),
     "RTG-ID-002": ErrorCodeInfo("RTG-ID-002", "Type not permitted in identity", "error", False, "A key component has a logical type that is not permitted in rtg-id/v1 (specs/identity.md §2).", "Use a key made of permitted types."),
     "RTG-ID-003": ErrorCodeInfo("RTG-ID-003", "Empty identity input", "error", False, "The entity type is empty or invalid UTF-8, or the key has no components.", "Declare a non-empty entity name and at least one key field."),
@@ -163,6 +182,7 @@ ERROR_CODES: Final[dict[str, ErrorCodeInfo]] = {
     "RTG-MAP-012": ErrorCodeInfo("RTG-MAP-012", "Reserved property name", "error", False, "A property mapping uses the name of the identity property (default rtg_id), which the engine manages.", "Rename the property, or change identity.property."),
     "RTG-NEO-001": ErrorCodeInfo("RTG-NEO-001", "Neo4j query failed", "error", False, "A query issued by the Neo4j adapter failed. The message includes the Neo4j status code.", "Check the user's privileges and the database name. Retryable cluster errors are retried automatically."),
     "RTG-PG-001": ErrorCodeInfo("RTG-PG-001", "PostgreSQL query failed", "error", False, "A query issued by the PostgreSQL adapter failed. The message includes the SQLSTATE when the server provided one.", "Check the connecting user's privileges on the catalog and the inspected schemas. If the failure persists, report it with the SQLSTATE."),
+    "RTG-PG-002": ErrorCodeInfo("RTG-PG-002", "Row rejected by PostgreSQL", "error", False, "PostgreSQL rejected a row (for example a NOT NULL, check or foreign-key violation, or a value out of range). The message includes the SQLSTATE.", "Fix the source record or the destination constraint, then resume or re-run."),
     "RTG-PLAN-001": ErrorCodeInfo("RTG-PLAN-001", "Mapped table not found", "error", False, "A table named by an entity or relationship does not exist in the inspected source schema.", "Check the table and schema names in the mapping (names are case-sensitive)."),
     "RTG-PLAN-002": ErrorCodeInfo("RTG-PLAN-002", "Mapped column not found", "error", False, "A column named by the mapping (property, key or foreign-key column) does not exist in its source table.", "Check the column name, or re-run `rtogtor inspect` to see the table's columns."),
     "RTG-PLAN-003": ErrorCodeInfo("RTG-PLAN-003", "Declared type does not match the source", "error", False, "A property's declared logical type differs from the column's inspected logical type, or the column's type is unsupported.", "Change the property's type to the inspected type shown in the message."),
@@ -170,6 +190,10 @@ ERROR_CODES: Final[dict[str, ErrorCodeInfo]] = {
     "RTG-PLAN-005": ErrorCodeInfo("RTG-PLAN-005", "Lossy transformation not allowed", "error", False, "Under the strict loss policy, a property would be stored in a lossy way (specs/values.md §5) and no policies.allow entry covers it.", "Add a policies.allow entry with a reason for this loss, use the flexible policy, or leave the property unmapped."),
     "RTG-PLAN-006": ErrorCodeInfo("RTG-PLAN-006", "Feature not yet supported by this engine", "error", False, "The mapping is valid but uses a feature this engine version cannot execute yet (for example junction relationships, natural identity, or some types).", "Check docs/roadmap.md and docs/limitations.md; restructure the mapping to avoid the feature for now."),
     "RTG-PLAN-007": ErrorCodeInfo("RTG-PLAN-007", "Foreign key does not match the referenced key types", "error", False, "A foreign-key column's logical type differs from the corresponding key field of the referenced entity, so identities could never match.", "Map foreign keys only onto keys of the same logical type, in the same order."),
+    "RTG-PLAN-008": ErrorCodeInfo("RTG-PLAN-008", "Destination table has no matching unique key", "error", False, "Idempotent writes use INSERT … ON CONFLICT on the entity's key, which needs a primary key or unique constraint on exactly the key columns of the destination table.", "Add a primary key or unique constraint on the key columns, or change the mapping's key."),
+    "RTG-PLAN-009": ErrorCodeInfo("RTG-PLAN-009", "Destination table not found", "error", False, "A table named by the mapping does not exist in the destination, and destination.createTables is not set.", "Create the table, or set destination.createTables: true to have the plan create missing tables."),
+    "RTG-PLAN-010": ErrorCodeInfo("RTG-PLAN-010", "Deferred foreign key is NOT NULL", "error", False, "A self-referencing or cyclic foreign key is filled after all rows are inserted, so its columns must allow NULL until then, but the destination column is NOT NULL.", "Allow NULL in the column (or make the constraint deferrable and the column nullable), or remove the relationship from the mapping."),
+    "RTG-PLAN-011": ErrorCodeInfo("RTG-PLAN-011", "Source graph does not match the mapping everywhere", "warning", False, "The inspected graph lacks a mapped label or property, holds values of other types for a mapped property, or has no index for key-ordered reads. Affected records will fail individually, or reads will be slow.", "Check the message; fix the data or the mapping, or create an index on the key properties."),
     "RTG-PROTO-001": ErrorCodeInfo("RTG-PROTO-001", "Unsupported protocol version", "error", False, "A protocol message declares a protocolVersion whose major version the engine does not support.", "Use an SDK version compatible with this engine (see specs/compatibility.md)."),
     "RTG-PROTO-002": ErrorCodeInfo("RTG-PROTO-002", "Malformed protocol message", "error", False, "A line on the protocol channel is not a valid JSON object, is too large, or does not match specs/protocol.schema.json.", "This is an SDK defect; report it with the SDK and engine versions."),
     "RTG-PROTO-003": ErrorCodeInfo("RTG-PROTO-003", "Unknown method", "error", False, "The request names a method this engine does not implement.", "Upgrade the engine, or check the SDK's supported engine range."),
