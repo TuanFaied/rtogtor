@@ -13,14 +13,14 @@ dependency.
 | `github.com/santhosh-tekuri/jsonschema/v6` | Validating documents against `specs/*.schema.json` | No JSON Schema in the standard library. Supports draft 2020-12, pure Go, no cgo |
 | `golang.org/x/text` | English messages from the JSON Schema validator | Already required by `jsonschema/v6`; pinned to v0.41.0, which fixes GO-2026-5970 and GO-2026-6629 |
 | `github.com/jackc/pgx/v5` | PostgreSQL driver | No PostgreSQL protocol in the standard library. Pure Go (no cgo), actively maintained, exposes typed catalog values such as `oid` and arrays |
+| `github.com/neo4j/neo4j-go-driver/v6` | Neo4j driver | The official driver. v6 is the current major version; the project specification named v5, which is in maintenance |
 | `pgregory.net/rapid` (tests only) | Property-based tests | Shrinking generators for identity and value-encoding invariants |
 
 Planned:
 
 | Module | Milestone | Used for |
 |---|---|---|
-| `github.com/neo4j/neo4j-go-driver/v5` | M2 | Official Neo4j driver |
-| A decimal library (`cockroachdb/apd` or `shopspring/decimal`) | M2 | Exact numeric conversion. Not needed yet: v0.1 canonicalizes decimals as text without arithmetic |
+| A decimal library (`cockroachdb/apd` or `shopspring/decimal`) | M5 | Exact numeric conversion when writing to PostgreSQL. Not needed for PostgreSQL → Neo4j: decimals are canonicalized as text, without arithmetic |
 
 Considered and not adopted:
 

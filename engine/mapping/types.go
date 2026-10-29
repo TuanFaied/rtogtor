@@ -14,7 +14,13 @@
 // (Milestone 1, step 6) generates them.
 package mapping
 
-import "github.com/TuanFaied/rtogtor/engine/ir"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+
+	"github.com/TuanFaied/rtogtor/engine/internal/canonjson"
+	"github.com/TuanFaied/rtogtor/engine/ir"
+)
 
 // Direction of a migration.
 type Direction string
@@ -175,4 +181,16 @@ func (m *Mapping) applyDefaults() {
 			ep.Schema = "public"
 		}
 	}
+}
+
+// Hash returns the lowercase hex SHA-256 of the mapping's RFC 8785 canonical
+// JSON, with defaults applied. Equivalent JSON and YAML documents have the
+// same hash; resuming a run requires an identical hash.
+func (m *Mapping) Hash() (string, error) {
+	b, err := canonjson.Marshal(m)
+	if err != nil {
+		return "", err
+	}
+	sum := sha256.Sum256(b)
+	return hex.EncodeToString(sum[:]), nil
 }

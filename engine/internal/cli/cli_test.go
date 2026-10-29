@@ -35,7 +35,7 @@ func TestValidateExample(t *testing.T) {
 	path := testutil.RepoPath(t, "examples", "ecommerce", "mapping.yaml")
 
 	code, out, _ := run("validate", "--mapping", path)
-	if code != ExitOK || !strings.Contains(out, `OK: mapping "ecommerce" is valid (1 warning)`) {
+	if code != ExitOK || !strings.Contains(out, `OK: mapping "ecommerce" is valid (0 warnings)`) {
 		t.Errorf("exit %d, output:\n%s", code, out)
 	}
 
@@ -120,5 +120,40 @@ func TestInspectConnectionSettings(t *testing.T) {
 	}
 	if code, _, _ := run("inspect"); code != ExitUsage {
 		t.Errorf("missing --source-env: exit %d, want %d", code, ExitUsage)
+	}
+}
+
+func TestRunCommandsReportUnknownRuns(t *testing.T) {
+	dir := t.TempDir()
+	for _, cmd := range []string{"report", "failures"} {
+		code, _, errOut := run(cmd, "--run-id", "01234567-89ab-7def-8123-456789abcdef", "--state-dir", dir)
+		if code != ExitFailure || !strings.Contains(errOut, "RTG-RUN-001") {
+			t.Errorf("%s: exit %d, stderr %q", cmd, code, errOut)
+		}
+		code, _, errOut = run(cmd, "--run-id", "../../secrets", "--state-dir", dir)
+		if code != ExitFailure || !strings.Contains(errOut, "RTG-RUN-001") {
+			t.Errorf("%s with a path as run ID: exit %d, stderr %q", cmd, code, errOut)
+		}
+	}
+}
+
+func TestMigrateNeedsDestinationUnlessDryRun(t *testing.T) {
+	path := testutil.RepoPath(t, "examples", "ecommerce", "mapping.yaml")
+	t.Setenv("RTG_TEST_SRC", "postgres://u:p@127.0.0.1:1/db")
+	code, _, errOut := run("migrate", "--mapping", path, "--source-env", "RTG_TEST_SRC")
+	if code != ExitUsage || !strings.Contains(errOut, "--dest-env is required") {
+		t.Errorf("exit %d, stderr %q", code, errOut)
+	}
+}
+
+func TestPlanRejectsInvalidMappingBeforeConnecting(t *testing.T) {
+	bad := filepath.Join(t.TempDir(), "bad.yaml")
+	if err := os.WriteFile(bad, []byte("specVersion: \"0.1.0\"\nname: x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// The source variable is unset: the mapping error must come first.
+	code, _, errOut := run("plan", "--mapping", bad, "--source-env", "RTG_TEST_UNSET")
+	if code != ExitFailure || !strings.Contains(errOut, "RTG-MAP-001") {
+		t.Errorf("exit %d, stderr %q", code, errOut)
 	}
 }

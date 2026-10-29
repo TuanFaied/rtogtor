@@ -27,6 +27,9 @@ const (
 	SchemaMetadataSchemaFile = "schema-metadata.schema.json"
 	IRSchemaFile             = "ir.schema.json"
 	ErrorCodesFile           = "error-codes.json"
+	PlanSchemaFile           = "plan.schema.json"
+	ReportSchemaFile         = "report.schema.json"
+	RunStateSchemaFile       = "run-state.schema.json"
 )
 
 // Files lists every embedded specification file. The generator copies exactly
@@ -36,6 +39,9 @@ var Files = []string{
 	SchemaMetadataSchemaFile,
 	IRSchemaFile,
 	ErrorCodesFile,
+	PlanSchemaFile,
+	ReportSchemaFile,
+	RunStateSchemaFile,
 }
 
 // SchemaBaseURL is the base of every schema's $id.

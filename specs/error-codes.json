@@ -195,6 +195,166 @@
       "remediation": "Check the connecting user's privileges on the catalog and the inspected schemas. If the failure persists, report it with the SQLSTATE."
     },
     {
+      "code": "RTG-PLAN-001",
+      "title": "Mapped table not found",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A table named by an entity or relationship does not exist in the inspected source schema.",
+      "remediation": "Check the table and schema names in the mapping (names are case-sensitive)."
+    },
+    {
+      "code": "RTG-PLAN-002",
+      "title": "Mapped column not found",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A column named by the mapping (property, key or foreign-key column) does not exist in its source table.",
+      "remediation": "Check the column name, or re-run `rtogtor inspect` to see the table's columns."
+    },
+    {
+      "code": "RTG-PLAN-003",
+      "title": "Declared type does not match the source",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A property's declared logical type differs from the column's inspected logical type, or the column's type is unsupported.",
+      "remediation": "Change the property's type to the inspected type shown in the message."
+    },
+    {
+      "code": "RTG-PLAN-004",
+      "title": "Key column is nullable",
+      "severity": "warning",
+      "retryable": false,
+      "meaning": "A key column allows NULL in the source. Rows with a NULL key cannot get an identity and will be recorded as failed records.",
+      "remediation": "Add a NOT NULL constraint in the source, or accept that such rows fail with RTG-ID-001."
+    },
+    {
+      "code": "RTG-PLAN-005",
+      "title": "Lossy transformation not allowed",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "Under the strict loss policy, a property would be stored in a lossy way (specs/values.md §5) and no policies.allow entry covers it.",
+      "remediation": "Add a policies.allow entry with a reason for this loss, use the flexible policy, or leave the property unmapped."
+    },
+    {
+      "code": "RTG-PLAN-006",
+      "title": "Feature not yet supported by this engine",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The mapping is valid but uses a feature this engine version cannot execute yet (for example junction relationships, natural identity, or some types).",
+      "remediation": "Check docs/roadmap.md and docs/limitations.md; restructure the mapping to avoid the feature for now."
+    },
+    {
+      "code": "RTG-PLAN-007",
+      "title": "Foreign key does not match the referenced key types",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A foreign-key column's logical type differs from the corresponding key field of the referenced entity, so identities could never match.",
+      "remediation": "Map foreign keys only onto keys of the same logical type, in the same order."
+    },
+    {
+      "code": "RTG-EXEC-001",
+      "title": "Record could not be converted",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A source value could not be converted for the destination (for example an array containing NULL, which Neo4j cannot store). The record was written to the failed-records store.",
+      "remediation": "Inspect the record with `rtogtor failures --run-id <id>`, fix the source data, and resume or re-run."
+    },
+    {
+      "code": "RTG-EXEC-002",
+      "title": "Relationship endpoint not found",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A relationship could not be created because one of its end nodes does not exist in the destination, usually because that node's own record failed.",
+      "remediation": "Fix the failed end-node record, then re-run; relationship writes are idempotent."
+    },
+    {
+      "code": "RTG-EXEC-003",
+      "title": "Batch write failed",
+      "severity": "error",
+      "retryable": true,
+      "meaning": "Writing a batch to the destination failed after the configured retries. The batch was not committed and no checkpoint was recorded.",
+      "remediation": "Check the destination's health, then resume the run with --resume; committed batches are not repeated."
+    },
+    {
+      "code": "RTG-EXEC-004",
+      "title": "Run interrupted",
+      "severity": "error",
+      "retryable": true,
+      "meaning": "The run stopped before completing (cancellation or an injected fault). Every committed batch is checkpointed.",
+      "remediation": "Resume the run with `rtogtor migrate --resume <run-id>`."
+    },
+    {
+      "code": "RTG-RUN-001",
+      "title": "Run not found",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "No run with the given ID exists in the state directory.",
+      "remediation": "Check the run ID and --state-dir. Runs are listed in the state directory's runs/ folder."
+    },
+    {
+      "code": "RTG-RUN-002",
+      "title": "Mapping changed since the run started",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "Resuming requires the identical mapping, but its canonical hash differs from the one recorded when the run started.",
+      "remediation": "Resume with the original mapping, or start a new run."
+    },
+    {
+      "code": "RTG-RUN-003",
+      "title": "Run already completed",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The run finished; there is nothing to resume.",
+      "remediation": "Start a new run. Re-running a migration is safe because writes are idempotent."
+    },
+    {
+      "code": "RTG-RUN-004",
+      "title": "Run state unreadable",
+      "severity": "fatal",
+      "retryable": false,
+      "meaning": "The run-state files are missing, corrupt, or written by an incompatible specification version.",
+      "remediation": "Do not edit run-state files by hand. Start a new run; idempotent writes make this safe."
+    },
+    {
+      "code": "RTG-NEO-001",
+      "title": "Neo4j query failed",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A query issued by the Neo4j adapter failed. The message includes the Neo4j status code.",
+      "remediation": "Check the user's privileges and the database name. Retryable cluster errors are retried automatically."
+    },
+    {
+      "code": "RTG-VERIFY-001",
+      "title": "Entity missing in destination",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "A source record's identity has no node in the destination.",
+      "remediation": "Check `rtogtor failures` for the record; re-run or resume the migration."
+    },
+    {
+      "code": "RTG-VERIFY-002",
+      "title": "Entity count mismatch",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The destination holds a different number of nodes for an entity than the source has rows (for example extra nodes from other sources sharing the label).",
+      "remediation": "Investigate extra nodes with the entity's label, or give the entity a dedicated label."
+    },
+    {
+      "code": "RTG-VERIFY-003",
+      "title": "Relationship count mismatch",
+      "severity": "error",
+      "retryable": false,
+      "meaning": "The number of relationships of a mapped type differs from the number expected from the source.",
+      "remediation": "Check `rtogtor failures` for relationship records, then re-run; relationship writes are idempotent."
+    },
+    {
+      "code": "RTG-VERIFY-004",
+      "title": "Dangling source reference",
+      "severity": "warning",
+      "retryable": false,
+      "meaning": "Source rows reference keys that do not exist in the referenced table (the mapping's foreign key is not enforced by the source). No relationship can be created for them.",
+      "remediation": "Fix the source data or add a foreign-key constraint."
+    },
+    {
       "code": "RTG-PROTO-001",
       "title": "Unsupported protocol version",
       "severity": "error",

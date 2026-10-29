@@ -98,8 +98,22 @@ jobs:
           --health-interval 2s
           --health-timeout 5s
           --health-retries 30
+      neo4j:
+        image: neo4j:5-community
+        env:
+          # Throwaway password for a container that lives only for this job.
+          NEO4J_AUTH: neo4j/rtogtor-ci-password
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p rtogtor-ci-password 'RETURN 1'"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 40
+          --health-start-period 20s
     env:
       RTOGTOR_TEST_POSTGRES_URL: postgres://rtogtor:rtogtor-ci@localhost:5432/ecommerce?sslmode=disable
+      RTOGTOR_TEST_NEO4J_URL: neo4j://neo4j:rtogtor-ci-password@localhost:7687
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-go@v7
@@ -107,8 +121,8 @@ jobs:
           go-version: stable
           check-latest: true
           cache-dependency-path: engine/go.sum
-      - name: Integration tests (PostgreSQL)
-        run: go test -tags integration -count=1 ./...
+      - name: Integration and end-to-end tests (PostgreSQL, Neo4j)
+        run: go test -tags integration -count=1 -timeout 20m ./...
 
   build:
     name: build (${{ matrix.goos }}-${{ matrix.goarch }})
