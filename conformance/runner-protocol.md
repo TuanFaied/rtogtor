@@ -48,4 +48,5 @@ writes a JSON document to that path:
 |---|---|---|
 | Go (engine) | `engine/ir/vectors_test.go`, `engine/planning/build_test.go`, `engine/protocol/server_test.go` | `go test ./...` in `engine/` |
 | C# | `sdks/dotnet/tests/RtoGtoR.Tests/ConformanceTests.cs` | `dotnet test` in `sdks/dotnet/` |
-| Python, TypeScript | Milestone 4 | — |
+| Python | `sdks/python/tests/test_conformance.py` | `pytest` in `sdks/python/` |
+| TypeScript | `sdks/typescript/tests/conformance.test.ts` | `npm test` in `sdks/typescript/` |

@@ -22,5 +22,5 @@ suite for that version.
 |---|---|---|---|---|
 | Go (engine library) | 0.1.0-dev | 0.1.x | same module | Identity + value vectors and the e-commerce plan case pass |
 | C# (`RtoGtoR`) | 0.1.0-dev | 0.1.x | `>= 0.1.0-0, < 0.2.0`, protocol 1.x | All identity, value and plan cases pass |
-| Python | — | — | — | Not started (Milestone 4) |
-| TypeScript | — | — | — | Not started (Milestone 4) |
+| Python (`rtogtor`) | 0.1.0.dev0 | 0.1.x | `>= 0.1.0-0, < 0.2.0`, protocol 1.x | All identity, value and plan cases pass |
+| TypeScript (`@rtogtor/sdk`) | 0.1.0-dev.0 | 0.1.x | `>= 0.1.0-0, < 0.2.0`, protocol 1.x | All identity, value and plan cases pass |

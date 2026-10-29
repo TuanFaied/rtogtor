@@ -1,0 +1,70 @@
+{
+  "name": "@rtogtor/sdk",
+  "version": "0.1.0-dev.0",
+  "description": "Relational ↔ graph migration (PostgreSQL → Neo4j) with explicit mappings, plans, resumable runs and verification.",
+  "license": "Apache-2.0",
+  "author": "TuanFaied",
+  "homepage": "https://github.com/TuanFaied/rtogtor",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TuanFaied/rtogtor.git",
+    "directory": "sdks/typescript"
+  },
+  "keywords": [
+    "graph",
+    "neo4j",
+    "postgresql",
+    "migration",
+    "etl"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "rtogtor": "bin/rtogtor.js"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "build:engine": "node scripts/build-engine.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "pack:all": "node scripts/pack.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "yaml": "^2.8.0"
+  },
+  "optionalDependencies": {
+    "@rtogtor/sdk-darwin-arm64": "0.1.0-dev.0",
+    "@rtogtor/sdk-darwin-x64": "0.1.0-dev.0",
+    "@rtogtor/sdk-linux-arm64": "0.1.0-dev.0",
+    "@rtogtor/sdk-linux-x64": "0.1.0-dev.0",
+    "@rtogtor/sdk-win32-x64": "0.1.0-dev.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.13.0",
+    "fast-check": "^4.10.2",
+    "prettier": "^3.9.10",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^5.0.5"
+  }
+}

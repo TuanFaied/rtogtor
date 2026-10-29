@@ -5,6 +5,20 @@ grouped by component.
 
 ## Unreleased
 
+### Milestone 4 (branch `milestone-4/python-typescript`)
+
+- `tools/codegen`: Python (Pydantic v2) and TypeScript emitters; schemas ship
+  with generated code; `Warning` renamed `InspectionWarning` (shadowed
+  Python's built-in)
+- Python SDK `rtogtor`: sync and asyncio APIs, YAML 1.2 core-schema typing,
+  platform wheels bundling the engine, `python -m rtogtor`
+- TypeScript SDK `@rtogtor/sdk`: AbortSignal cancellation, `await using`,
+  per-platform engine packages via optionalDependencies, `npx rtogtor`
+- Both SDKs pass the conformance suite and property tests against independent
+  identity implementations
+- CI for both SDKs; fixed the .NET workflow (`build-engine.sh` lacked its
+  execute bit on Linux and macOS)
+
 ### Milestone 3 (branch `milestone-3/protocol-csharp`)
 
 - Spec: engine ↔ SDK protocol 1.0 (`protocol.md`, `protocol.schema.json`),

@@ -6,7 +6,7 @@ RtoGtoR is an open-source engine for moving data between relational and graph
 databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned for
 **Go, Python, TypeScript and C#**.
 
-> **Status: pre-alpha (Milestone 3 — engine protocol and .NET SDK).** Nothing here is ready for
+> **Status: pre-alpha (Milestone 4 — Python and TypeScript SDKs).** Nothing here is ready for
 > production data yet. See [Capabilities](#capabilities) for exactly what works.
 
 ## Why RtoGtoR
@@ -38,7 +38,8 @@ databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned f
 | Go SDK (the engine library, `github.com/TuanFaied/rtogtor/engine`) | ✅ Implemented ([docs](docs/sdk/go.md)) |
 | Engine ↔ SDK protocol 1.0 (`rtogtor serve --stdio`) | ✅ Implemented, schema-validated in tests |
 | C# SDK (`RtoGtoR` on NuGet, bundles the engine for 5 platforms) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/dotnet.md)) |
-| Python / TypeScript SDKs | ⏳ Planned (Milestone 4) |
+| Python SDK (`rtogtor` on PyPI, platform wheels with the engine) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/python.md)) |
+| TypeScript SDK (`@rtogtor/sdk` on npm, per-platform engine packages) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/typescript.md)) |
 
 ✅ implemented · 🟡 partial/draft · ⏳ planned. A language SDK is listed as
 supported only after it passes the full conformance suite.
@@ -60,7 +61,7 @@ go build -o bin/rtogtor ./cmd/rtogtor
 |---|---|
 | [`specs/`](specs/) | The language-neutral specification — the source of truth |
 | [`engine/`](engine/) | Go engine: library (`github.com/TuanFaied/rtogtor/engine`) and CLI |
-| [`sdks/dotnet/`](sdks/dotnet/) | C# SDK |
+| [`sdks/dotnet/`](sdks/dotnet/), [`sdks/python/`](sdks/python/), [`sdks/typescript/`](sdks/typescript/) | SDKs |
 | [`tools/codegen/`](tools/codegen/) | Generates SDK types from `specs/` |
 | [`conformance/`](conformance/) | Shared test vectors and cases every SDK must pass |
 | [`examples/`](examples/) | Example schemas and mappings |
