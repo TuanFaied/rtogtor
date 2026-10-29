@@ -1,7 +1,7 @@
 import type { Connection } from "./connection.js";
 import { Engine, type CallOptions } from "./engine.js";
 import type {
-  Connection as WireConnection,
+  WireConnection,
   Failure,
   Plan,
   Progress,

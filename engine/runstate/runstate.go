@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"time"
 
@@ -390,9 +391,28 @@ func writeAtomic(path string, data []byte) error {
 		_ = os.Remove(name)
 		return rtgerr.New(rtgerr.Internal, "writing %s: %v", filepath.Base(path), err)
 	}
-	if err := os.Rename(name, path); err != nil {
+	if err := rename(name, path); err != nil {
 		_ = os.Remove(name)
 		return rtgerr.New(rtgerr.Internal, "replacing %s: %v", filepath.Base(path), err)
 	}
 	return nil
+}
+
+// rename replaces newpath with oldpath. On Windows, replacing a file fails
+// while another process (a virus scanner, the search indexer, a backup
+// tool) briefly has it open, so failures are retried for up to two seconds,
+// as Go's own toolchain does (cmd/go/internal/robustio).
+func rename(oldpath, newpath string) error {
+	err := os.Rename(oldpath, newpath)
+	if err == nil || runtime.GOOS != "windows" {
+		return err
+	}
+	deadline := time.Now().Add(2 * time.Second)
+	for delay := time.Millisecond; time.Now().Before(deadline); delay = min(2*delay, 100*time.Millisecond) {
+		time.Sleep(delay)
+		if err = os.Rename(oldpath, newpath); err == nil {
+			return nil
+		}
+	}
+	return err
 }

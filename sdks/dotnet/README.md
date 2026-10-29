@@ -41,10 +41,6 @@ var verification = await m.VerifyAsync(report.RunId, new VerifyOptions { Values 
 A complete program, migrating the example both ways:
 [examples/ecommerce/dotnet](https://github.com/TuanFaied/rtogtor/blob/main/examples/ecommerce/dotnet/Program.cs).
 
-`RtoGtoR.Model` also has a generated `Connection` type (the protocol's wire
-form). If you import both namespaces, alias the model types you use, for
-example `using Progress = RtoGtoR.Model.Progress;`.
-
 - **Credentials** are read from environment variables: `SOURCE_URL`, plus
   `NEO4J_USER` and `NEO4J_PASSWORD` for `authEnv: "NEO4J"`. They are never sent
   in protocol messages or printed. Literal values

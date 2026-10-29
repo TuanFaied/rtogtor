@@ -64,8 +64,8 @@ public sealed class Migration : IAsyncDisposable
     private readonly EngineOptions _options;
     private readonly SemaphoreSlim _startLock = new(1, 1);
     private Engine? _engine;
-    private Model.Connection? _wireSource;
-    private Model.Connection? _wireDestination;
+    private Model.WireConnection? _wireSource;
+    private Model.WireConnection? _wireDestination;
     private bool _disposed;
 
     /// <summary>Creates a migration. The destination may be null for dry runs.</summary>

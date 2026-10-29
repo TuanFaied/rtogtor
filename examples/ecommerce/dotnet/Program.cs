@@ -8,7 +8,7 @@
 // Load ../schema.sql into the PostgreSQL database first. The run is safe to
 // repeat: writes are idempotent.
 using RtoGtoR;
-using Progress = RtoGtoR.Model.Progress;
+using RtoGtoR.Model;
 
 var postgres = Connection.PostgreSql(urlEnv: "POSTGRES_URL");
 var neo4j = Connection.Neo4j(urlEnv: "NEO4J_URL");

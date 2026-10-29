@@ -14,38 +14,6 @@ public sealed record class CanonicalizeResult
     public required string Canonical { get; init; }
 }
 
-public sealed record class Connection
-{
-    [JsonPropertyName("product")]
-    public required string Product { get; init; }
-
-    /// <summary>
-    /// Variable holding the full URL, which may include credentials.
-    /// </summary>
-    [JsonPropertyName("urlEnv")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? UrlEnv { get; init; }
-
-    /// <summary>
-    /// URL without credentials (no user:password).
-    /// </summary>
-    [JsonPropertyName("uri")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Uri { get; init; }
-
-    [JsonPropertyName("userEnv")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? UserEnv { get; init; }
-
-    [JsonPropertyName("passwordEnv")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? PasswordEnv { get; init; }
-
-    [JsonPropertyName("database")]
-    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public string? Database { get; init; }
-}
-
 public sealed record class FailuresResult
 {
     [JsonPropertyName("failures")]
@@ -172,4 +140,36 @@ public sealed record class ValidateMappingResult
 
     [JsonPropertyName("diagnostics")]
     public required global::System.Collections.Generic.IReadOnlyList<ProtocolDiagnostic> Diagnostics { get; init; }
+}
+
+public sealed record class WireConnection
+{
+    [JsonPropertyName("product")]
+    public required string Product { get; init; }
+
+    /// <summary>
+    /// Variable holding the full URL, which may include credentials.
+    /// </summary>
+    [JsonPropertyName("urlEnv")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UrlEnv { get; init; }
+
+    /// <summary>
+    /// URL without credentials (no user:password).
+    /// </summary>
+    [JsonPropertyName("uri")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Uri { get; init; }
+
+    [JsonPropertyName("userEnv")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? UserEnv { get; init; }
+
+    [JsonPropertyName("passwordEnv")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? PasswordEnv { get; init; }
+
+    [JsonPropertyName("database")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Database { get; init; }
 }

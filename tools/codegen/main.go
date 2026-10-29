@@ -35,7 +35,9 @@ var roots = []Root{
 	{File: "run-state.schema.json", Pointer: "/$defs/stream", Name: "StepState"},
 	// "Warning" would shadow Python's built-in Warning exception.
 	{File: "schema-metadata.schema.json", Pointer: "/$defs/warning", Name: "InspectionWarning"},
-	{File: "protocol.schema.json", Pointer: "/$defs/connection", Name: "Connection"},
+	// "Connection" would clash with each SDK's own Connection class; this is
+	// the protocol's wire form of it.
+	{File: "protocol.schema.json", Pointer: "/$defs/connection", Name: "WireConnection"},
 	{File: "protocol.schema.json", Pointer: "/$defs/handshakeResult", Name: "HandshakeResult"},
 	{File: "protocol.schema.json", Pointer: "/$defs/validateMappingResult", Name: "ValidateMappingResult"},
 	{File: "protocol.schema.json", Pointer: "/$defs/identityResult", Name: "IdentityResult"},

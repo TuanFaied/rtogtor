@@ -23,17 +23,6 @@ export interface Column {
   typeInfo: TypeInfo;
 }
 
-export interface Connection {
-  product: string;
-  /** Variable holding the full URL, which may include credentials. */
-  urlEnv?: string;
-  /** URL without credentials (no user:password). */
-  uri?: string;
-  userEnv?: string;
-  passwordEnv?: string;
-  database?: string;
-}
-
 export interface EndpointRef {
   entity: string;
   /** Columns that reference the entity's key, in key order. */
@@ -692,4 +681,15 @@ export interface Verification {
   /** One check per (type, fromLabel, toLabel), in plan order of first appearance. */
   relationships: RelationshipCheck[];
   issues: PlanDiagnostic[];
+}
+
+export interface WireConnection {
+  product: string;
+  /** Variable holding the full URL, which may include credentials. */
+  urlEnv?: string;
+  /** URL without credentials (no user:password). */
+  uri?: string;
+  userEnv?: string;
+  passwordEnv?: string;
+  database?: string;
 }

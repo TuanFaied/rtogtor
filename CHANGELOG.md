@@ -17,6 +17,14 @@ grouped by component.
   drafts the graph-to-relational mapping that reads it back. Rewritten root
   help with the typical workflow and exit codes; `version` lists accepted
   spec versions
+- SDKs (breaking, pre-1.0): the generated protocol connection type is now
+  `WireConnection` (was `Connection`) in all three SDKs, so it no longer
+  clashes with each SDK's `Connection` class (C# `RtoGtoR.Model`, Python
+  `rtogtor.models`, TypeScript exports)
+- Fix: on Windows, saving run state could fail when another process (a
+  virus scanner, the indexer) briefly held the state file open; the
+  replacing rename now retries for up to two seconds. A run whose report
+  could not be written now returns its own error instead of RTG-RUN-004
 - Examples: the e-commerce round trip (PostgreSQL → Neo4j → PostgreSQL with
   value verification) in Go, C#, Python and TypeScript, run in CI
 - Release automation: release-please for the engine and the three SDKs,

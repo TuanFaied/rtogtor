@@ -342,6 +342,9 @@ func (m *Migration) Run(ctx context.Context, opts RunOptions) (*Report, error) {
 	}
 	rep, err := LoadReport(store.Dir, st.RunID)
 	if err != nil {
+		if runErr != nil {
+			return nil, runErr // the run's own error explains the missing report
+		}
 		return nil, err
 	}
 	return rep, runErr
