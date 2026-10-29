@@ -50,6 +50,10 @@ updates:
       # typescript-eslint supports TypeScript < 6.1; raise together.
       - dependency-name: typescript
         versions: [">= 6.1.0"]
+      # The SDK supports Node.js 22 (engines.node >= 22): its types must not
+      # describe APIs Node 22 lacks. Raise with the minimum Node.js version.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     groups:
       npm:
         patterns: ["*"]
