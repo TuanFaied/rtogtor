@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -52,11 +53,14 @@ func TestFilesAreEmbedded(t *testing.T) {
 
 func TestSupports(t *testing.T) {
 	cases := map[string]bool{
-		"0.1.0":  true,
+		"1.0.0":  true,
+		"1.0.9":  true,
+		"0.1.0":  true, // the 1.0 draft
 		"0.1.7":  true,
 		"0.2.0":  false,
 		"0.0.9":  false,
 		"1.1.0":  false,
+		"2.0.0":  false,
 		"0.1":    false,
 		"0.01.0": false,
 		"v0.1.0": false,
@@ -65,6 +69,14 @@ func TestSupports(t *testing.T) {
 	for v, want := range cases {
 		if got := Supports(v); got != want {
 			t.Errorf("Supports(%q) = %v, want %v", v, got, want)
+		}
+	}
+}
+
+func TestAcceptsDescribesSupports(t *testing.T) {
+	for _, p := range strings.Split(Accepts, ", ") {
+		if !Supports(strings.Replace(p, "x", "0", 1)) || !Supports(strings.Replace(p, "x", "9", 1)) {
+			t.Errorf("Accepts lists %s, which Supports rejects", p)
 		}
 	}
 }

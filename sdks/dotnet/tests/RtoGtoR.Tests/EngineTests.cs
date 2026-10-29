@@ -10,10 +10,10 @@ public class EngineTests
     public async Task Handshake_reports_versions()
     {
         await using var engine = await Engine.StartAsync();
-        Assert.Equal("0.1.0", engine.Info.SpecVersion);
+        Assert.Equal("1.0.0", engine.Info.SpecVersion);
         Assert.Equal("rtg-id/v1", engine.Info.IdentityAlgorithm);
         Assert.Equal("1.0", engine.Info.ProtocolVersion);
-        Assert.StartsWith("0.1.", engine.Info.EngineVersion, StringComparison.Ordinal);
+        Assert.StartsWith("1.", engine.Info.EngineVersion, StringComparison.Ordinal);
     }
 
     [Fact]

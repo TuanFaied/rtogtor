@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.1.0",
+  "specVersion": "1.0.0",
   "description": "Canonical value encoding vectors for scalar types. See specs/values.md. 'input' is a text form; 'canonical' is the canonical text form. Implementations must normalize every valid input to exactly 'canonical' and reject every invalid input with 'errorCode'.",
   "valid": [
     { "type": "bool", "input": "true", "canonical": "true" },

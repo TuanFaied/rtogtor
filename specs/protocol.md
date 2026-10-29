@@ -1,6 +1,6 @@
 # Engine ↔ SDK protocol, version 1
 
-- **Spec version:** 0.1.0 (draft)
+- **Spec version:** 1.0.0
 - **Protocol version:** `1.0`
 - **Machine-readable:** [`protocol.schema.json`](protocol.schema.json)
 
@@ -110,8 +110,8 @@ Notes:
 ## Example session
 
 ```text
-→ {"protocolVersion":"1.0","id":"1","method":"handshake","params":{"client":{"name":"RtoGtoR.NET","version":"0.1.0"},"protocolVersions":["1.0"]}}
-← {"protocolVersion":"1.0","id":"1","result":{"engineVersion":"0.1.0-dev","specVersion":"0.1.0","identityAlgorithm":"rtg-id/v1","protocolVersion":"1.0"}}
+→ {"protocolVersion":"1.0","id":"1","method":"handshake","params":{"client":{"name":"RtoGtoR.NET","version":"1.0.0"},"protocolVersions":["1.0"]}}
+← {"protocolVersion":"1.0","id":"1","result":{"engineVersion":"1.0.0","specVersion":"1.0.0","identityAlgorithm":"rtg-id/v1","protocolVersion":"1.0"}}
 → {"protocolVersion":"1.0","id":"2","method":"canonicalize","params":{"type":"decimal","value":"0012.500"}}
 ← {"protocolVersion":"1.0","id":"2","result":{"canonical":"12.5"}}
 → {"protocolVersion":"1.0","id":"3","method":"shutdown","params":{}}

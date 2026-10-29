@@ -62,10 +62,25 @@ func newRoot(opts *options) *cobra.Command {
 		Use:   "rtogtor",
 		Short: "Bidirectional relational ↔ graph migration engine",
 		Long: `RtoGtoR moves data between relational and graph databases using explicit,
-validated mappings.
+validated mappings: PostgreSQL → Neo4j and Neo4j → PostgreSQL.
 
-Status: pre-alpha. Available commands are listed below; migration commands
-arrive in later milestones (see docs/roadmap.md).`,
+A typical migration:
+
+  rtogtor inspect  --source-env SOURCE_URL                      # what is there
+  rtogtor scaffold --source-env SOURCE_URL > mapping.yaml       # a draft mapping
+  rtogtor validate --mapping mapping.yaml
+  rtogtor plan     --mapping mapping.yaml --source-env SOURCE_URL
+  rtogtor migrate  --mapping mapping.yaml --source-env SOURCE_URL --dest-env DEST_URL --dry-run
+  rtogtor migrate  --mapping mapping.yaml --source-env SOURCE_URL --dest-env DEST_URL
+  rtogtor verify   --run-id RUN_ID --source-env SOURCE_URL --dest-env DEST_URL --values
+
+Connection URLs are read from the environment variables you name, never from
+flags. Every command accepts --format json.
+
+Exit status: 0 success, 1 failure (details on stderr, or in the JSON output),
+2 usage error, 3 migration finished with failed records.
+
+Documentation: https://github.com/TuanFaied/rtogtor/tree/main/docs`,
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
@@ -76,7 +91,7 @@ arrive in later milestones (see docs/roadmap.md).`,
 		},
 	}
 	root.PersistentFlags().StringVar(&opts.format, "format", "text", `output format: "text" or "json"`)
-	root.AddCommand(newVersionCmd(opts), newValidateCmd(opts), newInspectCmd(opts),
+	root.AddCommand(newVersionCmd(opts), newValidateCmd(opts), newInspectCmd(opts), newScaffoldCmd(opts),
 		newPlanCmd(opts), newMigrateCmd(opts), newVerifyCmd(opts), newReportCmd(opts), newFailuresCmd(opts), newServeCmd(opts))
 	return root
 }
@@ -117,6 +132,7 @@ func writeJSON(w io.Writer, v any) error {
 type versionInfo struct {
 	EngineVersion     string   `json:"engineVersion"`
 	SpecVersion       string   `json:"specVersion"`
+	SpecAccepts       string   `json:"specAccepts"`
 	IdentityAlgorithm string   `json:"identityAlgorithm"`
 	ProtocolVersions  []string `json:"protocolVersions"`
 	Commit            string   `json:"commit,omitempty"`
@@ -128,6 +144,7 @@ func currentVersion() versionInfo {
 	v := versionInfo{
 		EngineVersion:     rtogtor.EngineVersion,
 		SpecVersion:       rtogtor.SpecVersion,
+		SpecAccepts:       spec.Accepts,
 		IdentityAlgorithm: rtogtor.IdentityAlgorithm,
 		ProtocolVersions:  []string{spec.ProtocolVersion},
 	}
@@ -157,7 +174,7 @@ func newVersionCmd(opts *options) *cobra.Command {
 				return writeJSON(out, v)
 			}
 			fmt.Fprintf(out, "rtogtor engine     %s\n", v.EngineVersion)
-			fmt.Fprintf(out, "specification      %s\n", v.SpecVersion)
+			fmt.Fprintf(out, "specification      %s (reads %s)\n", v.SpecVersion, v.SpecAccepts)
 			fmt.Fprintf(out, "identity algorithm %s\n", v.IdentityAlgorithm)
 			fmt.Fprintf(out, "protocol           %s\n", strings.Join(v.ProtocolVersions, ", "))
 			if v.Commit != "" {

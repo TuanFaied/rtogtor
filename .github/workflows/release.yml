@@ -1,0 +1,255 @@
+name: release
+
+# Release automation (docs/releasing.md). release-please keeps a release pull
+# request up to date from conventional commits on main; merging it tags the
+# components and creates GitHub releases, and the jobs below then build,
+# attest and publish exactly those components. Publishing uses OIDC trusted
+# publishing (no long-lived registry tokens) and waits for approval in the
+# "release" environment.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      engine: ${{ steps.rp.outputs['engine--release_created'] }}
+      engine-tag: ${{ steps.rp.outputs['engine--tag_name'] }}
+      dotnet: ${{ steps.rp.outputs['sdks/dotnet--release_created'] }}
+      dotnet-tag: ${{ steps.rp.outputs['sdks/dotnet--tag_name'] }}
+      python: ${{ steps.rp.outputs['sdks/python--release_created'] }}
+      python-tag: ${{ steps.rp.outputs['sdks/python--tag_name'] }}
+      typescript: ${{ steps.rp.outputs['sdks/typescript--release_created'] }}
+      typescript-tag: ${{ steps.rp.outputs['sdks/typescript--tag_name'] }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: rp
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # ---- engine binaries ---------------------------------------------------------
+
+  engine-build:
+    needs: release-please
+    if: needs.release-please.outputs.engine == 'true'
+    name: engine (${{ matrix.goos }}-${{ matrix.goarch }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { goos: linux, goarch: amd64 }
+          - { goos: linux, goarch: arm64 }
+          - { goos: darwin, goarch: amd64 }
+          - { goos: darwin, goarch: arm64 }
+          - { goos: windows, goarch: amd64, ext: .exe }
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.engine-tag }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: engine/go.mod
+          cache-dependency-path: engine/go.sum
+      - name: "Cross-compile (reproducible: trimmed paths, no cgo, VCS info embedded)"
+        working-directory: engine
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: go build -trimpath -ldflags "-s -w" -o ../dist/rtogtor-${{ matrix.goos }}-${{ matrix.goarch }}${{ matrix.ext }} ./cmd/rtogtor
+      - uses: actions/upload-artifact@v7
+        with:
+          name: engine-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/
+
+  engine-release:
+    needs: [release-please, engine-build]
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.engine-tag }}
+      - uses: actions/download-artifact@v7
+        with:
+          pattern: engine-*
+          path: dist
+          merge-multiple: true
+      - name: SBOM (SPDX) of the engine module
+        uses: anchore/sbom-action@v0
+        with:
+          path: engine
+          format: spdx-json
+          output-file: dist/rtogtor-engine.spdx.json
+          upload-artifact: false
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum rtogtor-* > SHA256SUMS
+      - name: Build provenance (Sigstore-signed, verifiable with `gh attestation verify`)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: "dist/rtogtor-*"
+      - name: SBOM attestation
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: "dist/rtogtor-*-*"
+          sbom-path: dist/rtogtor-engine.spdx.json
+      - name: Attach to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.release-please.outputs.engine-tag }}" dist/* --clobber
+
+  # ---- NuGet -------------------------------------------------------------------
+
+  nuget:
+    needs: release-please
+    if: needs.release-please.outputs.dotnet == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: sdks/dotnet
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.dotnet-tag }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: engine/go.mod
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: 8.0.x
+      - name: Build the engine for every platform
+        run: bash ./build-engine.sh all
+      - name: Pack (release version, no suffix)
+        run: dotnet pack src/RtoGtoR -c Release -p:VersionSuffix= -o ../../dist/nuget
+      - name: Smoke test the installed package
+        working-directory: sdks/dotnet/smoke
+        run: dotnet run -c Release -p:RtoGtoRVersion="$(ls ../../../dist/nuget/RtoGtoR.*.nupkg | sed -E 's/.*RtoGtoR\.(.*)\.nupkg/\1/')" -- ../../..
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/nuget/*.nupkg
+      - name: NuGet trusted publishing (OIDC)
+        uses: NuGet/login@v1
+        id: nuget
+        with:
+          user: ${{ vars.NUGET_USER }}
+      - name: Publish to nuget.org
+        run: dotnet nuget push ../../dist/nuget/*.nupkg --api-key "${{ steps.nuget.outputs.NUGET_API_KEY }}" --source https://api.nuget.org/v3/index.json
+      - name: Attach to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.release-please.outputs.dotnet-tag }}" ../../dist/nuget/*.nupkg --clobber
+
+  # ---- PyPI --------------------------------------------------------------------
+
+  pypi:
+    needs: release-please
+    if: needs.release-please.outputs.python == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.python-tag }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: engine/go.mod
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+      - name: Build the five platform wheels
+        working-directory: sdks/python
+        run: |
+          python -m pip install build wheel
+          python build_wheels.py
+          test "$(ls ../../dist/python/*.whl | wc -l)" -eq 5
+      - name: Smoke test the installed wheel (bundled engine)
+        working-directory: sdks/python
+        run: python smoke.py
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/python/*.whl
+      - name: Publish to PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: dist/python
+      - name: Attach to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.release-please.outputs.python-tag }}" dist/python/*.whl --clobber
+
+  # ---- npm ---------------------------------------------------------------------
+
+  npm:
+    needs: release-please
+    if: needs.release-please.outputs.typescript == 'true'
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: sdks/typescript
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.typescript-tag }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: engine/go.mod
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+      - name: npm with OIDC trusted publishing
+        run: npm install -g npm@11
+      - run: npm ci
+      - name: Pack @rtogtor/sdk and the five platform packages
+        run: |
+          node scripts/pack.mjs
+          test "$(ls ../../dist/npm/*.tgz | wc -l)" -eq 6
+      - name: Smoke test the installed packages
+        run: node scripts/smoke.mjs
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/npm/*.tgz
+      - name: Publish (platform packages first, so optional dependencies resolve)
+        run: |
+          for p in ../../dist/npm/rtogtor-sdk-*-*.tgz; do npm publish "$p" --access public --provenance; done
+          npm publish ../../dist/npm/rtogtor-sdk-[0-9]*.tgz --access public --provenance
+      - name: Attach to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.release-please.outputs.typescript-tag }}" ../../dist/npm/*.tgz --clobber

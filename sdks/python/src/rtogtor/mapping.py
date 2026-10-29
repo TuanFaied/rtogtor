@@ -18,7 +18,8 @@ from ._generated.models import MappingDocument
 from .errors import Diagnostic, RtoGtoRError
 
 _BASE = "https://github.com/TuanFaied/rtogtor/specs/"
-_SUPPORTED_SPEC = "0.1."
+# specVersion 1.0.x, or 0.1.x: the draft that became 1.0.0 without schema changes.
+_SUPPORTED_SPEC = ("1.0.", "0.1.")
 
 
 @cache
@@ -69,7 +70,7 @@ class Mapping:
         if isinstance(spec_version, str) and not spec_version.startswith(_SUPPORTED_SPEC):
             raise RtoGtoRError(
                 ErrorCode.SPEC_001,
-                f"mapping declares specVersion {spec_version}; this SDK supports 0.1.x",
+                f"mapping declares specVersion {spec_version}; this SDK supports 1.0.x (and 0.1.x)",
                 path="/specVersion",
             )
         problems = _validate("mapping.schema.json", document, ErrorCode.MAP_001)

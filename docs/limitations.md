@@ -13,7 +13,8 @@ Each item fails clearly with an error code; none is silently ignored.
 | Neo4j → other relational databases, other graph databases | Only PostgreSQL and Neo4j adapters exist | Later |
 | `identity.strategy: natural` | `RTG-PLAN-006`; use `hash` | Later |
 | SDK connections with literal credentials outside `Migration` (all SDKs) | `Engine` methods accept only connections that name environment variables | — |
-| SDK packages on PyPI, npm and NuGet | Built and smoke-tested, not yet published | Milestone 7 |
+| SDK packages on PyPI, npm and NuGet | Built, smoke-tested and release-automated ([releasing](releasing.md)), not yet published | First release |
+| `rtogtor scaffold` from a Neo4j database | Not supported: inspection cannot tell which relationships connect which labels. Scaffold the relational-to-graph mapping and use `--reverse` | Later |
 
 ## Types
 

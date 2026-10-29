@@ -42,10 +42,11 @@ export class Mapping {
   private constructor(json: unknown) {
     if (typeof json === "object" && json !== null && "specVersion" in json) {
       const v = json.specVersion;
-      if (typeof v === "string" && !v.startsWith("0.1.")) {
+      // specVersion 1.0.x, or 0.1.x: the draft that became 1.0.0 without schema changes.
+      if (typeof v === "string" && !v.startsWith("1.0.") && !v.startsWith("0.1.")) {
         throw new RtoGtoRError(
           ErrorCodes.Spec001,
-          `mapping declares specVersion ${v}; this SDK supports 0.1.x`,
+          `mapping declares specVersion ${v}; this SDK supports 1.0.x (and 0.1.x)`,
           {
             path: "/specVersion",
           },

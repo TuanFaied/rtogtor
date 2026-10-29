@@ -3,11 +3,13 @@
 **Relational ↔ Graph transformation, done explicitly and safely.**
 
 RtoGtoR is an open-source engine for moving data between relational and graph
-databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned for
+databases — **PostgreSQL** and **Neo4j**, in both directions — with SDKs for
 **Go, Python, TypeScript and C#**.
 
-> **Status: pre-alpha (Milestone 4 — Python and TypeScript SDKs).** Nothing here is ready for
-> production data yet. See [Capabilities](#capabilities) for exactly what works.
+> **Status: 1.0 release candidate.** Every capability below is implemented and
+> tested; packages are not published to the registries yet
+> ([releasing](docs/releasing.md)). See [Capabilities](#capabilities) and the
+> [known limitations](docs/limitations.md).
 
 ## Why RtoGtoR
 
@@ -26,11 +28,11 @@ databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned f
 
 | Capability | Status |
 |---|---|
-| Specification v0.1 (values, identity, error codes, mapping/metadata/IR schemas) | 🟡 Draft |
+| Specification 1.0 (values, identity, error codes, mapping, metadata, plan, report, run state, protocol); 0.1 documents still accepted ([compatibility](specs/compatibility.md)) | ✅ |
 | Canonical value encoding (Go engine) | ✅ Implemented, tested against shared vectors |
 | `rtg_id` identity derivation (Go engine) | ✅ Implemented, tested against shared vectors |
 | Mapping loading + validation (JSON/YAML) | ✅ Implemented (schema + semantic checks) |
-| CLI: `rtogtor version`, `validate`, `inspect` (PostgreSQL and Neo4j) | ✅ Implemented |
+| CLI: `rtogtor version`, `validate`, `inspect` (PostgreSQL and Neo4j), `scaffold` (draft mappings) | ✅ Implemented |
 | Adapter interfaces (relational, graph) | 🟡 Defined, unstable |
 | PostgreSQL schema inspection (`rtogtor inspect`) | ✅ Implemented, integration-tested |
 | PostgreSQL → Neo4j migration: `plan`, `migrate` (`--dry-run`, `--resume`), `verify`, `report`, `failures` | ✅ Implemented, end-to-end tested |
@@ -38,9 +40,9 @@ databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned f
 | Go SDK (the engine library, `github.com/TuanFaied/rtogtor/engine`) | ✅ Implemented ([docs](docs/sdk/go.md)) |
 | Engine ↔ SDK protocol 1.0 (`rtogtor serve --stdio`) | ✅ Implemented, schema-validated and fuzzed in tests |
 | Recovery: resumable runs, explicit retry policies, fault-injection tests in every SDK, value-level verification | ✅ Implemented ([recovery](docs/recovery.md), [security](docs/security.md), [performance](docs/performance.md)) |
-| C# SDK (`RtoGtoR` on NuGet, bundles the engine for 5 platforms) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/dotnet.md)) |
-| Python SDK (`rtogtor` on PyPI, platform wheels with the engine) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/python.md)) |
-| TypeScript SDK (`@rtogtor/sdk` on npm, per-platform engine packages) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/typescript.md)) |
+| C# SDK (`RtoGtoR` on NuGet, bundles the engine for 5 platforms) | ✅ Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/dotnet.md)) |
+| Python SDK (`rtogtor` on PyPI, platform wheels with the engine) | ✅ Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/python.md)) |
+| TypeScript SDK (`@rtogtor/sdk` on npm, per-platform engine packages) | ✅ Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/typescript.md)) |
 
 ✅ implemented · 🟡 partial/draft · ⏳ planned. A language SDK is listed as
 supported only after it passes the full conformance suite.
@@ -56,6 +58,13 @@ go build -o bin/rtogtor ./cmd/rtogtor
 ./bin/rtogtor validate --mapping ../examples/ecommerce/mapping.yaml
 ```
 
+Then follow the [migration guide](docs/migration-guide.md), or run the
+e-commerce round trip in your language:
+[Go](examples/ecommerce/go/main.go), [C#](examples/ecommerce/dotnet/Program.cs),
+[Python](examples/ecommerce/python/main.py),
+[TypeScript](examples/ecommerce/typescript/main.ts)
+([how](examples/ecommerce/README.md)).
+
 ## Repository layout
 
 | Path | Contents |
@@ -65,7 +74,7 @@ go build -o bin/rtogtor ./cmd/rtogtor
 | [`sdks/dotnet/`](sdks/dotnet/), [`sdks/python/`](sdks/python/), [`sdks/typescript/`](sdks/typescript/) | SDKs |
 | [`tools/codegen/`](tools/codegen/) | Generates SDK types from `specs/` |
 | [`conformance/`](conformance/) | Shared test vectors and cases every SDK must pass |
-| [`examples/`](examples/) | Example schemas and mappings |
+| [`examples/`](examples/) | Example schema, mappings, and the round trip in all four languages |
 | [`docs/`](docs/) | Architecture decisions, guides, full project specification |
 
 ## Documentation
@@ -76,6 +85,7 @@ go build -o bin/rtogtor ./cmd/rtogtor
 - [Known limitations](docs/limitations.md)
 - [Performance and memory](docs/performance.md)
 - [Security review](docs/security.md)
+- [Releasing](docs/releasing.md) and the [compatibility matrix](specs/compatibility.md)
 - [Development guide](docs/development.md) — local databases, tests, CI
 - [Architecture decision records](docs/adr/)
 - [Roadmap](docs/roadmap.md)

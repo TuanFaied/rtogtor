@@ -24,6 +24,11 @@ with unsupported types and tables without a primary key are flagged.
 
 ## 3. Write and validate a mapping
 
+Start from a draft: `rtogtor scaffold --source-env SOURCE_URL > mapping.yaml`
+writes one entity per table with a key, one property per supported column
+and one relationship per foreign key, with comments on every choice it made.
+Review and edit it, then validate it.
+
 See [`examples/ecommerce/mapping.yaml`](../examples/ecommerce/mapping.yaml):
 
 - **entities** map a table to nodes: `labels`, `key` (the identity, in order)

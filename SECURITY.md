@@ -2,8 +2,13 @@
 
 ## Supported versions
 
-RtoGtoR is pre-alpha. Until 1.0, only the latest commit on `main` receives
-security fixes.
+Security fixes go to the latest minor release of the current major version
+(1.x) of each component, and to `main`.
+
+| Version | Supported |
+|---|---|
+| 1.x | ✅ |
+| 0.1.x (pre-release) | ❌ |
 
 ## Reporting a vulnerability
 

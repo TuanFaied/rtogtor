@@ -1,5 +1,5 @@
 {
-  "specVersion": "0.1.0",
+  "specVersion": "1.0.0",
   "algorithm": "rtg-id/v1",
   "description": "Identity derivation vectors. See specs/identity.md. Every SDK and the engine must reproduce serializationHex and rtgId exactly.",
   "vectors": [

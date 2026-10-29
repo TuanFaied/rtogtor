@@ -1,0 +1,127 @@
+name: examples
+
+# The e-commerce round trip in all four languages, against fresh databases:
+# documentation examples must compile and run.
+
+on:
+  push:
+    branches: [main]
+    paths: &paths
+      - "engine/**"
+      - "sdks/**"
+      - "specs/**"
+      - "examples/**"
+      - ".github/workflows/examples.yml"
+  pull_request:
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: examples-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  run:
+    name: ${{ matrix.language }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [go, dotnet, python, typescript]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: rtogtor
+          # Throwaway password for a container that lives only for this job.
+          POSTGRES_PASSWORD: rtogtor-ci
+          POSTGRES_DB: ecommerce
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U rtogtor -d ecommerce"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+      neo4j:
+        image: neo4j:5-community
+        env:
+          # Throwaway password for a container that lives only for this job.
+          NEO4J_AUTH: neo4j/rtogtor-ci-password
+        ports:
+          - 7687:7687
+        options: >-
+          --health-cmd "cypher-shell -u neo4j -p rtogtor-ci-password 'RETURN 1'"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 40
+          --health-start-period 20s
+    env:
+      POSTGRES_URL: postgres://rtogtor:rtogtor-ci@localhost:5432/ecommerce?sslmode=disable
+      NEO4J_URL: neo4j://neo4j:rtogtor-ci-password@localhost:7687
+      PGPASSWORD: rtogtor-ci
+      RTOGTOR_ENGINE_PATH: ${{ github.workspace }}/engine/bin/rtogtor
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: stable
+          check-latest: true
+          cache-dependency-path: engine/go.sum
+      - name: Load the example schema
+        run: psql -h localhost -U rtogtor -d ecommerce -v ON_ERROR_STOP=1 -f examples/ecommerce/schema.sql
+      - name: Build the engine
+        working-directory: engine
+        run: go build -o bin/rtogtor ./cmd/rtogtor
+
+      - name: Go
+        if: matrix.language == 'go'
+        working-directory: examples/ecommerce/go
+        run: |
+          go vet .
+          go run .
+
+      - uses: actions/setup-dotnet@v6
+        if: matrix.language == 'dotnet'
+        with:
+          dotnet-version: 8.0.x
+      - name: C#
+        if: matrix.language == 'dotnet'
+        working-directory: examples/ecommerce/dotnet
+        run: dotnet run
+
+      - uses: actions/setup-python@v7
+        if: matrix.language == 'python'
+        with:
+          python-version: "3.13"
+      - name: Python
+        if: matrix.language == 'python'
+        working-directory: examples/ecommerce/python
+        run: |
+          python -m pip install ../../../sdks/python mypy
+          python -m mypy --strict main.py
+          python main.py
+
+      - uses: actions/setup-node@v7
+        if: matrix.language == 'typescript'
+        with:
+          node-version: 22
+      - name: TypeScript
+        if: matrix.language == 'typescript'
+        run: |
+          (cd sdks/typescript && npm ci && npm run build)
+          cd examples/ecommerce/typescript
+          npm ci
+          npm run typecheck
+          npm start
+
+      - name: Run twice (idempotent)
+        run: |
+          case "${{ matrix.language }}" in
+            go) (cd examples/ecommerce/go && go run .) ;;
+            dotnet) (cd examples/ecommerce/dotnet && dotnet run) ;;
+            python) (cd examples/ecommerce/python && python main.py) ;;
+            typescript) (cd examples/ecommerce/typescript && npm start) ;;
+          esac

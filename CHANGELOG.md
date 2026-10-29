@@ -5,6 +5,25 @@ grouped by component.
 
 ## Unreleased
 
+### Milestone 7 (branch `milestone-7/release-1.0`)
+
+- Specification 1.0.0. Engines and SDKs accept documents declaring 1.0.x and
+  0.1.x (the draft, schema-identical); documents they write declare 1.0.0.
+  `specs/compatibility.md` is the version matrix
+- Engine 1.0.0-dev and SDKs 1.0.0 pre-releases; SDKs accept engines
+  `>= 1.0.0-0, < 2.0.0`
+- CLI: `rtogtor scaffold --source-env VAR` drafts a relational-to-graph
+  mapping from an inspected PostgreSQL schema; `scaffold --reverse FILE`
+  drafts the graph-to-relational mapping that reads it back. Rewritten root
+  help with the typical workflow and exit codes; `version` lists accepted
+  spec versions
+- Examples: the e-commerce round trip (PostgreSQL → Neo4j → PostgreSQL with
+  value verification) in Go, C#, Python and TypeScript, run in CI
+- Release automation: release-please for the engine and the three SDKs,
+  provenance attestations and an SBOM for engine binaries, OIDC trusted
+  publishing to NuGet, PyPI and npm behind a `release` environment
+  (`docs/releasing.md`)
+
 ### Milestone 6 (branch `milestone-6/hardening`)
 
 - Retry policy per run: `migrate --retry-attempts/--retry-initial-backoff/

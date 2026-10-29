@@ -1,6 +1,6 @@
 # Identity derivation (`rtg-id/v1`)
 
-- **Spec version:** 0.1.0 (draft)
+- **Spec version:** 1.0.0
 - **Identity algorithm:** `rtg-id/v1`
 - **Status:** Normative
 

@@ -49,6 +49,7 @@ def test_yaml_and_json_agree() -> None:
     [
         ('specVersion: "0.1.0"', "specVersion: 0.1", ErrorCode.MAP_001, "/specVersion"),
         ('specVersion: "0.1.0"', 'specVersion: "0.2.0"', ErrorCode.SPEC_001, "/specVersion"),
+        ('specVersion: "0.1.0"', 'specVersion: "1.1.0"', ErrorCode.SPEC_001, "/specVersion"),
         ("type: int64 }", "type: integer }", ErrorCode.MAP_001, "/entities/0/properties/0/type"),
         ("name: test", "name: test\nname: again", ErrorCode.MAP_002, None),
     ],
@@ -60,6 +61,12 @@ def test_invalid_yaml_is_rejected_with_codes(old: str, new: str, code: str, path
     assert exc.value.severity == "error"
     if path is not None:
         assert path in [d.path for d in exc.value.diagnostics] + [exc.value.path]
+
+
+@pytest.mark.parametrize("version", ["0.1.0", "0.1.9", "1.0.0", "1.0.3"])
+def test_supported_spec_versions_are_accepted(version: str) -> None:
+    doc = Mapping.from_yaml(MINIMAL.replace('specVersion: "0.1.0"', f'specVersion: "{version}"')).document
+    assert doc.spec_version == version
 
 
 def test_yaml_12_core_schema_not_11() -> None:
@@ -126,7 +133,7 @@ def test_connection_arguments_are_checked() -> None:
 
 @pytest.mark.parametrize(
     ("version", "supported"),
-    [("0.1.0-dev", True), ("0.1.7", True), ("0.2.0", False), ("1.1.0", False), ("garbage", False)],
+    [("1.0.0-dev", True), ("1.0.0", True), ("1.7.2", True), ("0.1.0", False), ("2.0.0", False), ("garbage", False)],
 )
 def test_engine_version_range(version: str, supported: bool) -> None:
     assert is_supported_engine(version) is supported

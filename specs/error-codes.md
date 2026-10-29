@@ -1,6 +1,6 @@
 # Error codes
 
-- **Spec version:** 0.1.0 (draft)
+- **Spec version:** 1.0.0
 - **Source of truth:** [`error-codes.json`](error-codes.json). This page
   describes the format and summarizes the codes; the JSON file holds the
   full meaning and remediation text that tools and SDKs use.

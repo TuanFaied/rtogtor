@@ -1,10 +1,13 @@
 # RtoGtoR for .NET
 
-Migrate data from **PostgreSQL to Neo4j** with explicit mappings, plans you can
-inspect before writing, resumable runs and verification.
+Migrate data between **PostgreSQL and Neo4j**, in either direction, with
+explicit mappings, plans you can inspect before writing, resumable runs and
+value-level verification.
 
-> **Status: pre-alpha.** PostgreSQL → Neo4j only. See the
-> [roadmap](https://github.com/TuanFaied/rtogtor/blob/main/docs/roadmap.md).
+Version 1.0. The mapping's `direction` decides the way:
+`relational-to-graph` reads PostgreSQL and writes Neo4j, `graph-to-relational`
+reads Neo4j and writes PostgreSQL. See the
+[compatibility matrix](https://github.com/TuanFaied/rtogtor/blob/main/specs/compatibility.md).
 
 The package bundles the RtoGtoR engine for linux-x64, linux-arm64, osx-x64,
 osx-arm64 and win-x64. The SDK starts it as a child process and stops it when
@@ -14,7 +17,7 @@ for every RtoGtoR SDK.
 ## Install
 
 ```bash
-dotnet add package RtoGtoR --prerelease
+dotnet add package RtoGtoR
 ```
 
 Requires .NET 8 or later.
@@ -32,8 +35,15 @@ await using var m = new Migration(
 
 var plan = await m.PlanAsync(ct);                     // nothing is written
 var report = await m.RunAsync(new RunOptions { DryRun = false }, ct);
-var verification = await m.VerifyAsync(report.RunId, cancellationToken: ct);
+var verification = await m.VerifyAsync(report.RunId, new VerifyOptions { Values = true }, ct); // every value
 ```
+
+A complete program, migrating the example both ways:
+[examples/ecommerce/dotnet](https://github.com/TuanFaied/rtogtor/blob/main/examples/ecommerce/dotnet/Program.cs).
+
+`RtoGtoR.Model` also has a generated `Connection` type (the protocol's wire
+form). If you import both namespaces, alias the model types you use, for
+example `using Progress = RtoGtoR.Model.Progress;`.
 
 - **Credentials** are read from environment variables: `SOURCE_URL`, plus
   `NEO4J_USER` and `NEO4J_PASSWORD` for `authEnv: "NEO4J"`. They are never sent
@@ -48,6 +58,8 @@ var verification = await m.VerifyAsync(report.RunId, cancellationToken: ct);
   `report.RunId` as `RunOptions.ResumeRunId`. Committed batches are not
   repeated, and nothing is duplicated.
 - **Progress:** set `RunOptions.Progress` to an `IProgress<Progress>`.
+- **Retries:** transient errors are retried per `RunOptions.Retry`
+  (default 3 attempts, 200 ms to 5 s backoff).
 - **Typed model:** plans, reports, run state and mappings are generated from
   the specification's JSON Schemas (`RtoGtoR.Model`).
 
