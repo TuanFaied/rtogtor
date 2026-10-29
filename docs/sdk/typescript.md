@@ -49,7 +49,10 @@ node scripts/pack.mjs    # @rtogtor/sdk + @rtogtor/sdk-{linux,darwin}-{x64,arm64
 node scripts/smoke.mjs   # installs them into a fresh project and runs the bundled engine
 ```
 
-`@rtogtor/sdk` lists the platform packages as `optionalDependencies`. Each
-one declares `os` and `cpu`, so npm installs only the matching binary. Pack
+The packed `@rtogtor/sdk` lists the platform packages as
+`optionalDependencies`. Each one declares `os` and `cpu`, so npm installs
+only the matching binary. `pack.mjs` adds that list at pack time, with the
+package's own version; the source `package.json` leaves it out, so `npm ci`
+works on every npm version before the platform packages are published. Pack
 releases on Linux or macOS so the binaries keep their execute bit; the SDK
 also restores it at run time if needed.
