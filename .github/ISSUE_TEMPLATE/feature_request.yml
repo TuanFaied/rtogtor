@@ -1,0 +1,65 @@
+name: Feature request
+description: Suggest a new capability or an improvement to an existing one.
+title: "feat: "
+labels: ["enhancement", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check the [roadmap](https://github.com/TuanFaied/rtogtor/blob/main/docs/roadmap.md)
+        first — your idea may already be planned for a milestone.
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      options:
+        - Engine (library)
+        - CLI (rtogtor)
+        - PostgreSQL adapter
+        - Neo4j adapter
+        - Specification (specs/)
+        - Conformance suite
+        - SDK (Go / Python / TypeScript / C#)
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you trying to do, and why is it hard or impossible today?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How should it work? Include example mappings, CLI commands or API usage if you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: impact
+    attributes:
+      label: Impact
+      description: Check all that apply.
+      options:
+        - label: Changes behavior defined in the specification (values, identity, mapping semantics, error codes, report formats)
+        - label: May involve lossy conversion and needs a loss-policy decision
+        - label: Breaking change to the CLI, library API or mapping format
+
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contribution
+      options:
+        - label: I'd be willing to open a pull request for this.
