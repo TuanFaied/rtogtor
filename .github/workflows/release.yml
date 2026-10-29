@@ -34,7 +34,7 @@ jobs:
       typescript: ${{ steps.rp.outputs['sdks/typescript--release_created'] }}
       typescript-tag: ${{ steps.rp.outputs['sdks/typescript--tag_name'] }}
     steps:
-      - uses: googleapis/release-please-action@v4
+      - uses: googleapis/release-please-action@v5
         id: rp
         with:
           config-file: release-please-config.json
@@ -87,7 +87,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.engine-tag }}
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: engine-*
           path: dist
@@ -103,11 +103,11 @@ jobs:
         working-directory: dist
         run: sha256sum rtogtor-* > SHA256SUMS
       - name: Build provenance (Sigstore-signed, verifiable with `gh attestation verify`)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v4
         with:
           subject-path: "dist/rtogtor-*"
       - name: SBOM attestation
-        uses: actions/attest-sbom@v2
+        uses: actions/attest-sbom@v4
         with:
           subject-path: "dist/rtogtor-*-*"
           sbom-path: dist/rtogtor-engine.spdx.json
@@ -149,7 +149,7 @@ jobs:
       - name: Smoke test the installed package
         working-directory: sdks/dotnet/smoke
         run: dotnet run -c Release -p:RtoGtoRVersion="$(ls ../../../dist/nuget/RtoGtoR.*.nupkg | sed -E 's/.*RtoGtoR\.(.*)\.nupkg/\1/')" -- ../../..
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/nuget/*.nupkg
       - name: NuGet trusted publishing (OIDC)
@@ -195,7 +195,7 @@ jobs:
       - name: Smoke test the installed wheel (bundled engine)
         working-directory: sdks/python
         run: python smoke.py
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/python/*.whl
       - name: Publish to PyPI (trusted publishing)
@@ -242,7 +242,7 @@ jobs:
           test "$(ls ../../dist/npm/*.tgz | wc -l)" -eq 6
       - name: Smoke test the installed packages
         run: node scripts/smoke.mjs
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         with:
           subject-path: dist/npm/*.tgz
       - name: Publish (platform packages first, so optional dependencies resolve)
