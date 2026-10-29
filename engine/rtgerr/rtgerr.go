@@ -67,6 +67,13 @@ const (
 	VerifyRelationCount   Code = "RTG-VERIFY-003"
 	VerifyDanglingSource  Code = "RTG-VERIFY-004"
 	ProtoUnsupportedMajor Code = "RTG-PROTO-001"
+	ProtoMalformed        Code = "RTG-PROTO-002"
+	ProtoUnknownMethod    Code = "RTG-PROTO-003"
+	ProtoInvalidParams    Code = "RTG-PROTO-004"
+	ProtoDuplicateID      Code = "RTG-PROTO-005"
+	ProtoHandshake        Code = "RTG-PROTO-006"
+	ProtoEngineVersion    Code = "RTG-PROTO-007"
+	ProtoEngineMissing    Code = "RTG-PROTO-008"
 	CLIUsage              Code = "RTG-CLI-001"
 	Internal              Code = "RTG-INTERNAL-001"
 )

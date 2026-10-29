@@ -25,7 +25,9 @@ var allConstants = []Code{
 	RunNotFound, RunMappingChanged, RunCompleted, RunStateCorrupt,
 	NeoQuery,
 	VerifyMissingEntity, VerifyEntityCount, VerifyRelationCount, VerifyDanglingSource,
-	ProtoUnsupportedMajor, CLIUsage, Internal,
+	ProtoUnsupportedMajor, ProtoMalformed, ProtoUnknownMethod, ProtoInvalidParams,
+	ProtoDuplicateID, ProtoHandshake, ProtoEngineVersion, ProtoEngineMissing,
+	CLIUsage, Internal,
 }
 
 var codePattern = regexp.MustCompile(`^RTG-[A-Z]+-[0-9]{3}$`)

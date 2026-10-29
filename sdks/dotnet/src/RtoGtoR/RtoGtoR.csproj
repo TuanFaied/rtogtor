@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>RtoGtoR</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <PackageId>RtoGtoR</PackageId>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionSuffix>dev</VersionSuffix>
+    <Authors>TuanFaied</Authors>
+    <Description>RtoGtoR .NET SDK: bidirectional relational ↔ graph migration (PostgreSQL → Neo4j) with explicit mappings, plans, resumable runs and verification. Bundles the RtoGtoR engine for linux-x64, linux-arm64, osx-x64, osx-arm64 and win-x64.</Description>
+    <PackageTags>graph;neo4j;postgresql;migration;etl</PackageTags>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/TuanFaied/rtogtor</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/TuanFaied/rtogtor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="JsonSchema.Net" Version="9.4.1" />
+    <PackageReference Include="YamlDotNet" Version="18.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The specification's schemas, for local mapping validation. -->
+    <EmbeddedResource Include="..\..\..\..\specs\*.schema.json" LogicalName="RtoGtoR.Specs.%(Filename)%(Extension)" Link="Specs\%(Filename)%(Extension)" />
+    <!-- Engine binaries built by build-engine.sh / build-engine.ps1 into runtimes/<rid>/native. -->
+    <!-- PackagePath is a folder: NuGet appends each file's <rid>/native/ subdirectory itself. -->
+    <None Include="runtimes\**\*" Pack="true" PackagePath="runtimes" Link="runtimes\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <InternalsVisibleTo Include="RtoGtoR.Tests" />
+  </ItemGroup>
+
+</Project>

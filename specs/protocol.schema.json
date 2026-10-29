@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/TuanFaied/rtogtor/specs/protocol.schema.json",
+  "title": "RtoGtoR engine protocol message",
+  "description": "One JSON Lines message between an SDK and `rtogtor serve --stdio`. See specs/protocol.md. Credentials never appear in messages: connections name environment variables.",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/response" },
+    { "$ref": "#/$defs/event" }
+  ],
+  "$defs": {
+    "protocolVersion": {
+      "description": "major.minor",
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"
+    },
+    "id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "envName": {
+      "description": "Name of an environment variable of the engine process.",
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["product"],
+      "properties": {
+        "product": { "enum": ["postgresql", "neo4j"] },
+        "urlEnv": {
+          "description": "Variable holding the full URL, which may include credentials.",
+          "$ref": "#/$defs/envName"
+        },
+        "uri": {
+          "description": "URL without credentials (no user:password).",
+          "type": "string"
+        },
+        "userEnv": { "$ref": "#/$defs/envName" },
+        "passwordEnv": { "$ref": "#/$defs/envName" },
+        "database": { "type": "string" }
+      },
+      "oneOf": [
+        { "required": ["urlEnv"], "not": { "anyOf": [{ "required": ["uri"] }, { "required": ["userEnv"] }, { "required": ["passwordEnv"] }] } },
+        { "required": ["uri"], "not": { "required": ["urlEnv"] } }
+      ]
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "id", "method", "params"],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
+        "id": { "$ref": "#/$defs/id" },
+        "method": {
+          "enum": [
+            "handshake", "validateMapping", "inspect", "plan", "migrate", "verify", "report",
+            "runState", "failures", "identity", "canonicalize", "cancel", "shutdown"
+          ]
+        },
+        "params": { "type": "object" }
+      },
+      "allOf": [
+        { "if": { "properties": { "method": { "const": "handshake" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/handshakeParams" } } } },
+        { "if": { "properties": { "method": { "const": "validateMapping" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/validateMappingParams" } } } },
+        { "if": { "properties": { "method": { "const": "inspect" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/inspectParams" } } } },
+        { "if": { "properties": { "method": { "const": "plan" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/planParams" } } } },
+        { "if": { "properties": { "method": { "const": "migrate" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/migrateParams" } } } },
+        { "if": { "properties": { "method": { "const": "verify" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/verifyParams" } } } },
+        { "if": { "properties": { "method": { "enum": ["report", "runState", "failures"] } } }, "then": { "properties": { "params": { "$ref": "#/$defs/runParams" } } } },
+        { "if": { "properties": { "method": { "const": "identity" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/identityParams" } } } },
+        { "if": { "properties": { "method": { "const": "canonicalize" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/canonicalizeParams" } } } },
+        { "if": { "properties": { "method": { "const": "cancel" } } }, "then": { "properties": { "params": { "$ref": "#/$defs/cancelParams" } } } }
+      ]
+    },
+    "handshakeParams": {
+      "type": "object",
+      "required": ["client", "protocolVersions"],
+      "properties": {
+        "client": {
+          "type": "object",
+          "required": ["name", "version"],
+          "properties": {
+            "name": { "type": "string" },
+            "version": { "type": "string" }
+          }
+        },
+        "protocolVersions": {
+          "description": "Protocol versions the SDK speaks.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/protocolVersion" }
+        }
+      }
+    },
+    "handshakeResult": {
+      "type": "object",
+      "required": ["engineVersion", "specVersion", "identityAlgorithm", "protocolVersion"],
+      "properties": {
+        "engineVersion": { "type": "string" },
+        "specVersion": { "type": "string" },
+        "identityAlgorithm": { "type": "string" },
+        "protocolVersion": { "$ref": "#/$defs/protocolVersion" }
+      }
+    },
+    "validateMappingParams": {
+      "type": "object",
+      "required": ["mapping"],
+      "properties": { "mapping": { "type": "object" } }
+    },
+    "validateMappingResult": {
+      "type": "object",
+      "required": ["valid", "diagnostics"],
+      "properties": {
+        "valid": { "type": "boolean" },
+        "mappingHash": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "diagnostics": { "type": "array", "items": { "$ref": "#/$defs/diagnostic" } }
+      }
+    },
+    "inspectParams": {
+      "type": "object",
+      "required": ["source"],
+      "properties": {
+        "source": { "$ref": "#/$defs/connection" },
+        "schemas": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "planParams": {
+      "type": "object",
+      "required": ["mapping"],
+      "properties": {
+        "mapping": { "type": "object" },
+        "source": { "$ref": "#/$defs/connection" },
+        "sourceMetadata": { "$ref": "schema-metadata.schema.json" }
+      },
+      "oneOf": [
+        { "required": ["source"], "not": { "required": ["sourceMetadata"] } },
+        { "required": ["sourceMetadata"], "not": { "required": ["source"] } }
+      ]
+    },
+    "migrateParams": {
+      "type": "object",
+      "required": ["mapping", "source"],
+      "properties": {
+        "mapping": { "type": "object" },
+        "source": { "$ref": "#/$defs/connection" },
+        "destination": { "$ref": "#/$defs/connection" },
+        "dryRun": { "type": "boolean" },
+        "batchSize": { "type": "integer", "minimum": 1, "maximum": 1000000 },
+        "resumeRunId": { "type": "string" },
+        "stateDir": { "type": "string" }
+      }
+    },
+    "verifyParams": {
+      "type": "object",
+      "required": ["runId", "source", "destination"],
+      "properties": {
+        "runId": { "type": "string" },
+        "source": { "$ref": "#/$defs/connection" },
+        "destination": { "$ref": "#/$defs/connection" },
+        "stateDir": { "type": "string" }
+      }
+    },
+    "runParams": {
+      "type": "object",
+      "required": ["runId"],
+      "properties": {
+        "runId": { "type": "string" },
+        "stateDir": { "type": "string" }
+      }
+    },
+    "failuresResult": {
+      "type": "object",
+      "required": ["failures"],
+      "properties": {
+        "failures": { "type": "array", "items": { "$ref": "run-state.schema.json#/$defs/failure" } }
+      }
+    },
+    "keyComponent": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "type": "string" },
+        "value": { "type": ["string", "null"] }
+      }
+    },
+    "identityParams": {
+      "type": "object",
+      "required": ["entityType", "key"],
+      "properties": {
+        "entityType": { "type": "string" },
+        "key": { "type": "array", "items": { "$ref": "#/$defs/keyComponent" } }
+      }
+    },
+    "identityResult": {
+      "type": "object",
+      "required": ["rtgId", "canonicalKey", "serializationHex"],
+      "properties": {
+        "rtgId": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "canonicalKey": { "type": "array", "items": { "$ref": "#/$defs/keyComponent" } },
+        "serializationHex": { "type": "string", "pattern": "^([0-9a-f]{2})*$" }
+      }
+    },
+    "canonicalizeParams": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": { "type": "string" },
+        "value": { "type": "string" }
+      }
+    },
+    "canonicalizeResult": {
+      "type": "object",
+      "required": ["canonical"],
+      "properties": { "canonical": { "type": "string" } }
+    },
+    "cancelParams": {
+      "type": "object",
+      "required": ["requestId"],
+      "properties": { "requestId": { "$ref": "#/$defs/id" } }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "retryable", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^RTG-[A-Z]+-[0-9]{3}$" },
+        "severity": { "enum": ["info", "warning", "error", "fatal"] },
+        "retryable": { "type": "boolean" },
+        "message": { "type": "string" },
+        "path": { "type": "string" }
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "retryable", "message"],
+      "properties": {
+        "code": { "type": "string", "pattern": "^RTG-[A-Z]+-[0-9]{3}$" },
+        "severity": { "enum": ["info", "warning", "error", "fatal"] },
+        "retryable": { "type": "boolean" },
+        "message": { "type": "string" },
+        "path": { "type": "string" },
+        "diagnostics": {
+          "description": "Every problem, when the error stands for several (for example an invalid mapping).",
+          "type": "array",
+          "items": { "$ref": "#/$defs/diagnostic" }
+        },
+        "report": {
+          "description": "For a failed or interrupted migrate: the run's report, so the SDK can resume it.",
+          "$ref": "report.schema.json"
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "id"],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
+        "id": { "$ref": "#/$defs/id" },
+        "result": true,
+        "error": { "$ref": "#/$defs/error" }
+      },
+      "oneOf": [
+        { "required": ["result"], "not": { "required": ["error"] } },
+        { "required": ["error"], "not": { "required": ["result"] } }
+      ]
+    },
+    "progress": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stepId", "batch", "read", "written", "failed", "done"],
+      "properties": {
+        "stepId": { "type": "string" },
+        "batch": { "type": "integer", "minimum": 0 },
+        "read": { "type": "integer", "minimum": 0 },
+        "written": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "done": { "type": "boolean" }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocolVersion", "id", "event", "data"],
+      "properties": {
+        "protocolVersion": { "$ref": "#/$defs/protocolVersion" },
+        "id": { "$ref": "#/$defs/id" },
+        "event": { "enum": ["progress"] },
+        "data": true
+      },
+      "allOf": [
+        { "if": { "properties": { "event": { "const": "progress" } } }, "then": { "properties": { "data": { "$ref": "#/$defs/progress" } } } }
+      ]
+    }
+  }
+}

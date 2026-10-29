@@ -19,11 +19,16 @@ import (
 
 var (
 	once     sync.Once
-	compiled map[string]*jsonschema.Schema
+	compiler *jsonschema.Compiler
 	errInit  error
+
+	mu       sync.Mutex // guards compiled and compiler.Compile
+	compiled = map[string]*jsonschema.Schema{}
 )
 
-func compileAll() {
+// loadAll registers every embedded schema and compiles each file once, so a
+// broken schema is reported on first use.
+func loadAll() {
 	c := jsonschema.NewCompiler()
 	c.DefaultDraft(jsonschema.Draft2020)
 	for _, name := range spec.Files {
@@ -40,18 +45,31 @@ func compileAll() {
 			return
 		}
 	}
-	compiled = map[string]*jsonschema.Schema{}
+	compiler = c
 	for _, name := range spec.Files {
 		if name == spec.ErrorCodesFile {
 			continue
 		}
-		s, err := c.Compile(spec.SchemaBaseURL + name)
-		if err != nil {
-			errInit = fmt.Errorf("compiling schema %s: %w", name, err)
+		if _, err := schemaFor(name); err != nil {
+			errInit = err
 			return
 		}
-		compiled[name] = s
 	}
+}
+
+// schemaFor returns a compiled schema for "file" or "file#/json/pointer".
+func schemaFor(ref string) (*jsonschema.Schema, error) {
+	mu.Lock()
+	defer mu.Unlock()
+	if s, ok := compiled[ref]; ok {
+		return s, nil
+	}
+	s, err := compiler.Compile(spec.SchemaBaseURL + ref)
+	if err != nil {
+		return nil, fmt.Errorf("compiling schema %s: %w", ref, err)
+	}
+	compiled[ref] = s
+	return s, nil
 }
 
 // Violation is one schema validation failure.
@@ -62,20 +80,22 @@ type Violation struct {
 }
 
 // Validate validates a decoded JSON instance (as produced by
-// jsonschema.UnmarshalJSON) against the named embedded schema.
+// jsonschema.UnmarshalJSON) against an embedded schema: a file name such as
+// "plan.schema.json", optionally followed by a JSON Pointer fragment such as
+// "#/$defs/request".
 //
 // The returned error is non-nil only if the embedded schemas themselves are
-// broken, which is an engine defect.
-func Validate(schemaFile string, instance any) ([]Violation, error) {
-	once.Do(compileAll)
+// broken or the reference is unknown, which are engine defects.
+func Validate(schemaRef string, instance any) ([]Violation, error) {
+	once.Do(loadAll)
 	if errInit != nil {
 		return nil, errInit
 	}
-	s, ok := compiled[schemaFile]
-	if !ok {
-		return nil, fmt.Errorf("schema %s is not embedded", schemaFile)
+	s, err := schemaFor(schemaRef)
+	if err != nil {
+		return nil, err
 	}
-	err := s.Validate(instance)
+	err = s.Validate(instance)
 	if err == nil {
 		return nil, nil
 	}

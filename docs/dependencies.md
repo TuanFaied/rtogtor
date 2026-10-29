@@ -16,7 +16,19 @@ dependency.
 | `github.com/neo4j/neo4j-go-driver/v6` | Neo4j driver | The official driver. v6 is the current major version; the project specification named v5, which is in maintenance |
 | `pgregory.net/rapid` (tests only) | Property-based tests | Shrinking generators for identity and value-encoding invariants |
 
-Planned:
+## .NET SDK (`sdks/dotnet`)
+
+| Package | Used for | Why |
+|---|---|---|
+| `JsonSchema.Net` | Validating mappings locally against `mapping.schema.json` | Full JSON Schema draft 2020-12 support, including cross-file `$ref` |
+| `YamlDotNet` | Reading YAML mappings | The SDK applies YAML 1.2 core-schema typing itself (see `Mapping.cs`) so results match the engine |
+| xUnit, Microsoft.NET.Test.Sdk, coverlet (tests only) | Tests | Standard .NET test stack |
+
+## Code generator (`tools/codegen`)
+
+No dependencies (standard library only). See ADR-0005.
+
+## Planned (engine)
 
 | Module | Milestone | Used for |
 |---|---|---|

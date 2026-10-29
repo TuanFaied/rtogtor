@@ -96,6 +96,13 @@ Each code defines:
 | `RTG-VERIFY-003` | error | no | Relationship count mismatch |
 | `RTG-VERIFY-004` | warning | no | Dangling source reference |
 | `RTG-PROTO-001` | error | no | Unsupported protocol version |
+| `RTG-PROTO-002` | error | no | Malformed protocol message |
+| `RTG-PROTO-003` | error | no | Unknown method |
+| `RTG-PROTO-004` | error | no | Invalid request parameters |
+| `RTG-PROTO-005` | error | no | Duplicate request ID |
+| `RTG-PROTO-006` | error | no | Handshake required |
+| `RTG-PROTO-007` | fatal | no | Engine version not supported by this SDK |
+| `RTG-PROTO-008` | fatal | no | Engine unavailable |
 | `RTG-CLI-001` | error | no | Invalid command-line usage |
 | `RTG-INTERNAL-001` | fatal | no | Internal error |
 

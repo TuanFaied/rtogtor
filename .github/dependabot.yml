@@ -20,3 +20,16 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+
+  - package-ecosystem: nuget
+    directory: /sdks/dotnet
+    schedule:
+      interval: weekly
+    groups:
+      nuget:
+        patterns: ["*"]
+
+  - package-ecosystem: gomod
+    directory: /tools/codegen
+    schedule:
+      interval: monthly
