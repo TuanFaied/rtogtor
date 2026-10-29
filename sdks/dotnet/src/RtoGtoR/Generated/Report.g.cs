@@ -51,6 +51,14 @@ public sealed record class EntityCheck
     /// </summary>
     [JsonPropertyName("missingKeys")]
     public required global::System.Collections.Generic.IReadOnlyList<global::System.Collections.Generic.IReadOnlyList<string>> MissingKeys { get; init; }
+
+    /// <summary>
+    /// Present when values were compared (verify with values): records whose compared values
+    /// differ between source and destination.
+    /// </summary>
+    [JsonPropertyName("valueMismatches")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? ValueMismatches { get; init; }
 }
 
 public sealed record class RelationshipCheck
@@ -123,6 +131,14 @@ public sealed record class Report
 
     [JsonPropertyName("batchSize")]
     public required long BatchSize { get; init; }
+
+    [JsonPropertyName("retry")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RetryPolicy? Retry { get; init; }
+
+    [JsonPropertyName("retries")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? Retries { get; init; }
 
     [JsonPropertyName("source")]
     public required RunStateEndpoint Source { get; init; }

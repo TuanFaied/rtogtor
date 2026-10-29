@@ -102,4 +102,58 @@ describe.skipIf(!integrationConfigured)("integration", () => {
     expect(report.attempts).toBe(2);
     expect((await m.verify(runId, { stateDir })).status).toBe("passed");
   });
+
+  /** A migration whose engine process injects the given test faults. */
+  const faulty = (fault: string): Migration =>
+    new Migration({
+      source: source(),
+      destination: destination(),
+      mapping,
+      engine: { env: { RTOGTOR_TEST_FAULT: fault } },
+    });
+
+  const rejection = async (p: Promise<unknown>): Promise<RtoGtoRError> => {
+    const e = await p.then(
+      () => undefined,
+      (x: unknown) => x,
+    );
+    expect(e).toBeInstanceOf(RtoGtoRError);
+    return e as RtoGtoRError;
+  };
+
+  it("resumes after a fault between commit and checkpoint", async () => {
+    // The worst crash point: the batch is committed but not checkpointed.
+    await using m = faulty("step=relationships:OrderContainsItem;batch=1;point=before-checkpoint");
+    const error = await rejection(m.run({ stateDir, batchSize: 1 }));
+    expect(error.code).toBe(ErrorCodes.Exec004);
+    expect(error.report?.status).toBe("interrupted");
+    const runId = error.report?.runId ?? "";
+
+    // The same engine process: the fault fired once.
+    const report = await m.run({ stateDir, resumeRunId: runId });
+    expect(report.status).toBe("succeeded");
+    expect(report.attempts).toBe(2);
+    expect(report.totals.written).toBe(24);
+    const verification = await m.verify(runId, { stateDir, values: true });
+    expect(verification.status).toBe("passed");
+    expect(verification.entities.every((e) => e.valueMismatches === 0)).toBe(true);
+  });
+
+  it("retries transient faults per the retry policy", async () => {
+    const retry = { maxAttempts: 3, initialBackoffMs: 1, maxBackoffMs: 5 };
+    {
+      await using m = faulty("step=nodes:Customer;point=write;times=2");
+      const report = await m.run({ stateDir, retry });
+      expect(report.status).toBe("succeeded");
+      expect(report.retries).toBe(2);
+      expect(report.retry).toEqual(retry);
+    }
+    await using m = faulty("step=nodes:Customer;point=write;times=5");
+    const error = await rejection(
+      m.run({ stateDir, retry: { maxAttempts: 2, initialBackoffMs: 1, maxBackoffMs: 1 } }),
+    );
+    expect(error.code).toBe(ErrorCodes.Exec003);
+    expect(error.report?.status).toBe("interrupted");
+    expect(error.report?.retries).toBe(1);
+  });
 });

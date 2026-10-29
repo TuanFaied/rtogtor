@@ -157,3 +157,25 @@ func TestPlanRejectsInvalidMappingBeforeConnecting(t *testing.T) {
 		t.Errorf("exit %d, stderr %q", code, errOut)
 	}
 }
+
+// TestConnectionFailuresNeverPrintCredentials connects to closed local ports
+// with secrets in the URL; neither output may contain them.
+func TestConnectionFailuresNeverPrintCredentials(t *testing.T) {
+	t.Setenv("RTG_TEST_PG_URL", "postgres://alice:Pg-S3cret-pw@127.0.0.1:1/db?sslmode=disable&connect_timeout=2")
+	t.Setenv("RTG_TEST_NEO_URL", "neo4j://bob:Neo-S3cret-pw@127.0.0.1:1")
+	for _, args := range [][]string{
+		{"inspect", "--source-env", "RTG_TEST_PG_URL"},
+		{"inspect", "--source-env", "RTG_TEST_NEO_URL", "--timeout", "5s"},
+		{"--format", "json", "inspect", "--source-env", "RTG_TEST_PG_URL"},
+	} {
+		code, out, errOut := run(args...)
+		if code != ExitFailure || !strings.Contains(out+errOut, "RTG-CONN-001") {
+			t.Errorf("%v: exit %d, output %q %q", args, code, out, errOut)
+		}
+		for _, secret := range []string{"Pg-S3cret-pw", "Neo-S3cret-pw", "alice:", "bob:"} {
+			if strings.Contains(out+errOut, secret) {
+				t.Errorf("%v leaks %q: %q %q", args, secret, out, errOut)
+			}
+		}
+	}
+}

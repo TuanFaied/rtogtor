@@ -5,6 +5,28 @@ grouped by component.
 
 ## Unreleased
 
+### Milestone 6 (branch `milestone-6/hardening`)
+
+- Retry policy per run: `migrate --retry-attempts/--retry-initial-backoff/
+  --retry-max-backoff`, `RunOptions.Retry` (Go), protocol `migrate.retry`,
+  and a `retry` option in every SDK. Run state and reports record the policy
+  (`retry`) and the number of retried operations (`retries`)
+- Fault injection: a `write` fault point inside retried writes, and the
+  test-only `RTOGTOR_TEST_FAULT` variable for real engines in any language
+- `verify --values` (protocol `verify.values`, SDK `values` option):
+  compares every migrated value in both directions; new code
+  `RTG-VERIFY-005`; report `entities[].valueMismatches`
+- Neo4j inspection lists range indexes (`labels[].indexes`); graph →
+  relational plans warn when the key has no index
+- Bounded-memory tests in both directions; throughput measurement with
+  `RTOGTOR_PERF_ROWS`; value encoding benchmarks
+- Fuzz targets for mappings, protocol lines, values, JSON and the failure
+  log, run in CI
+- Security review (`docs/security.md`); Python build requires
+  `setuptools>=83`
+- Go API: `Migration.VerifyWith(ctx, runID, VerifyOptions)`;
+  `rtogtor.RetryPolicy`, `rtogtor.DefaultRetry`
+
 ### Milestone 5 (branch `milestone-5/neo4j-to-postgres`)
 
 - Engine: Neo4j → PostgreSQL migrations (`direction: graph-to-relational`),

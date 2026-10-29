@@ -73,6 +73,15 @@
       "type": "integer",
       "minimum": 1
     },
+    "retry": {
+      "description": "The retry policy of the current attempt. Absent in state written before engine 0.1 Milestone 6.",
+      "$ref": "#/$defs/retryPolicy"
+    },
+    "retries": {
+      "description": "Retried operations over all attempts of the run (each retry of a failed operation counts once).",
+      "type": "integer",
+      "minimum": 0
+    },
     "startedAt": {
       "$ref": "#/$defs/timestamp"
     },
@@ -269,6 +278,34 @@
         },
         "value": {
           "type": "string"
+        }
+      }
+    },
+    "retryPolicy": {
+      "description": "How transient errors (retryable error codes) are retried. Each attempt waits a random time between half and all of the current backoff, which starts at initialBackoffMs and doubles up to maxBackoffMs.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxAttempts",
+        "initialBackoffMs",
+        "maxBackoffMs"
+      ],
+      "properties": {
+        "maxAttempts": {
+          "description": "Attempts per operation, including the first. 1 disables retries.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "initialBackoffMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
+        },
+        "maxBackoffMs": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3600000
         }
       }
     }

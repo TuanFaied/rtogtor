@@ -115,6 +115,26 @@ public sealed record class Label
     /// </summary>
     [JsonPropertyName("properties")]
     public required global::System.Collections.Generic.IReadOnlyList<GraphProperty> Properties { get; init; }
+
+    /// <summary>
+    /// Range indexes on nodes with this label (including those backing uniqueness constraints),
+    /// ordered by property list. Absent when the inspector could not list indexes.
+    /// </summary>
+    [JsonPropertyName("indexes")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public global::System.Collections.Generic.IReadOnlyList<LabelIndexesItem>? Indexes { get; init; }
+}
+
+public sealed record class LabelIndexesItem
+{
+    /// <summary>
+    /// Indexed properties, in index order.
+    /// </summary>
+    [JsonPropertyName("properties")]
+    public required global::System.Collections.Generic.IReadOnlyList<string> Properties { get; init; }
+
+    [JsonPropertyName("unique")]
+    public required bool Unique { get; init; }
 }
 
 public sealed record class MetadataTable

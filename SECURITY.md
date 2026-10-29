@@ -28,7 +28,8 @@ Of particular interest:
 
 - Credentials or connection strings leaking into logs, plans, reports, run
   state, error messages or process arguments
-- Destructive operations running without the explicit `--allow-destructive`
-  safeguard
+- Any destructive operation: RtoGtoR must never delete data or drop, alter
+  or truncate tables, labels or constraints
+- Anything that weakens the trust model in [docs/security.md](docs/security.md)
 - Data being silently altered or discarded during migration
 - Injection through mapping files into generated SQL or Cypher

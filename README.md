@@ -36,7 +36,8 @@ databases — starting with **PostgreSQL** and **Neo4j** — with SDKs planned f
 | PostgreSQL → Neo4j migration: `plan`, `migrate` (`--dry-run`, `--resume`), `verify`, `report`, `failures` | ✅ Implemented, end-to-end tested |
 | Neo4j → PostgreSQL migration: same commands, `direction: graph-to-relational` | ✅ Implemented, round-trip tested ([guide](docs/migration-guide.md#the-other-way-neo4j--postgresql)) |
 | Go SDK (the engine library, `github.com/TuanFaied/rtogtor/engine`) | ✅ Implemented ([docs](docs/sdk/go.md)) |
-| Engine ↔ SDK protocol 1.0 (`rtogtor serve --stdio`) | ✅ Implemented, schema-validated in tests |
+| Engine ↔ SDK protocol 1.0 (`rtogtor serve --stdio`) | ✅ Implemented, schema-validated and fuzzed in tests |
+| Recovery: resumable runs, explicit retry policies, fault-injection tests in every SDK, value-level verification | ✅ Implemented ([recovery](docs/recovery.md), [security](docs/security.md), [performance](docs/performance.md)) |
 | C# SDK (`RtoGtoR` on NuGet, bundles the engine for 5 platforms) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/dotnet.md)) |
 | Python SDK (`rtogtor` on PyPI, platform wheels with the engine) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/python.md)) |
 | TypeScript SDK (`@rtogtor/sdk` on npm, per-platform engine packages) | 🟡 Implemented, passes the conformance suite; not yet published ([docs](docs/sdk/typescript.md)) |
@@ -70,9 +71,11 @@ go build -o bin/rtogtor ./cmd/rtogtor
 ## Documentation
 
 - [Project specification](docs/specification.md)
-- [Migration guide](docs/migration-guide.md) — PostgreSQL → Neo4j step by step
+- [Migration guide](docs/migration-guide.md) — PostgreSQL → Neo4j and back, step by step
 - [Recovery and guarantees](docs/recovery.md)
 - [Known limitations](docs/limitations.md)
+- [Performance and memory](docs/performance.md)
+- [Security review](docs/security.md)
 - [Development guide](docs/development.md) — local databases, tests, CI
 - [Architecture decision records](docs/adr/)
 - [Roadmap](docs/roadmap.md)

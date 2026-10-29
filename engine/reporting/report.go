@@ -23,6 +23,8 @@ type Report struct {
 	CompletedAt     string                    `json:"completedAt,omitempty"`
 	Attempts        int                       `json:"attempts"`
 	BatchSize       int                       `json:"batchSize"`
+	Retry           *runstate.RetryPolicy     `json:"retry,omitempty"`
+	Retries         int64                     `json:"retries"`
 	Source          runstate.Endpoint         `json:"source"`
 	Destination     runstate.Endpoint         `json:"destination"`
 	Steps           []StepReport              `json:"steps"`
@@ -87,6 +89,9 @@ type EntityCheck struct {
 	Missing int64 `json:"missing"`
 	// MissingKeys lists up to 10 missing rows' keys (canonical text).
 	MissingKeys [][]string `json:"missingKeys"`
+	// ValueMismatches counts records whose values differ; nil when values
+	// were not compared.
+	ValueMismatches *int64 `json:"valueMismatches,omitempty"`
 }
 
 // RelationshipCheck compares the relationships of one type between two
@@ -106,7 +111,7 @@ func Build(st *runstate.State, plan *planning.Plan, failures []runstate.Failure)
 	r := &Report{
 		SpecVersion: spec.Version, RunID: st.RunID, Mapping: st.Mapping, DryRun: st.DryRun,
 		Status: st.Status, StartedAt: st.StartedAt, CompletedAt: st.CompletedAt,
-		Attempts: st.Attempts, BatchSize: st.BatchSize, Source: st.Source, Destination: st.Destination,
+		Attempts: st.Attempts, BatchSize: st.BatchSize, Retry: st.Retry, Retries: st.Retries, Source: st.Source, Destination: st.Destination,
 		Steps: []StepReport{}, Transformations: plan.Transformations, Warnings: plan.Warnings,
 		Failures: FailureSummary{ByCode: []CodeCount{}}, LastError: st.LastError,
 	}
@@ -148,8 +153,8 @@ func (r *Report) Text() string {
 		mode = " (dry run: nothing was written)"
 	}
 	fmt.Fprintf(&sb, "Run %s: %s%s\n", r.RunID, r.Status, mode)
-	fmt.Fprintf(&sb, "Mapping %q, %s %s -> %s %s, batch size %d, attempts %d\n",
-		r.Mapping.Name, r.Source.Product, r.Source.Version, r.Destination.Product, r.Destination.Version, r.BatchSize, r.Attempts)
+	fmt.Fprintf(&sb, "Mapping %q, %s %s -> %s %s, batch size %d, attempts %d, retries %d\n",
+		r.Mapping.Name, r.Source.Product, r.Source.Version, r.Destination.Product, r.Destination.Version, r.BatchSize, r.Attempts, r.Retries)
 	fmt.Fprintf(&sb, "\n%-42s %10s %10s %8s %8s\n", "step", "read", "written", "failed", "skipped")
 	for _, s := range r.Steps {
 		done := ""
@@ -191,7 +196,11 @@ func (r *Report) VerificationText() string {
 	if v := r.Verification; v != nil {
 		fmt.Fprintf(&sb, "Verification %s at %s\n", v.Status, v.CheckedAt)
 		for _, e := range v.Entities {
-			fmt.Fprintf(&sb, "  %-20s source %-8d destination %-8d missing %d\n", e.Entity, e.SourceCount, e.DestinationCount, e.Missing)
+			values := ""
+			if e.ValueMismatches != nil {
+				values = fmt.Sprintf(", values differ in %d", *e.ValueMismatches)
+			}
+			fmt.Fprintf(&sb, "  %-20s source %-8d destination %-8d missing %d%s\n", e.Entity, e.SourceCount, e.DestinationCount, e.Missing, values)
 		}
 		for _, rc := range v.Relationships {
 			fmt.Fprintf(&sb, "  (:%s)-[:%s]->(:%s) expected %d, found %d, dangling in source %d\n",

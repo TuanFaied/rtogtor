@@ -158,6 +158,10 @@ type Adapter interface {
 	// UpdateRows updates one batch in a single transaction. Errors are as
 	// for UpsertRows.
 	UpdateRows(ctx context.Context, batch UpdateBatch) error
+	// RowsByKey reads columns of the rows with the given keys. The result
+	// is aligned with keys; a key without a row has nil values. A value that
+	// cannot be converted fails with RTG-EXEC-001.
+	RowsByKey(ctx context.Context, table Table, key []Column, columns []Column, keys [][]ir.Value) ([][]ir.Value, error)
 	// MissingKeys returns the keys (in canonical text) that have no row.
 	MissingKeys(ctx context.Context, table Table, key []Column, keys [][]ir.Value) ([][]ir.Value, error)
 	// Close releases the connection.

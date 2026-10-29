@@ -478,6 +478,10 @@
           "minimum": 1,
           "maximum": 1000000
         },
+        "retry": {
+          "description": "Retry policy for transient errors; the engine default (3 attempts, 200 ms to 5 s) when absent. Kept when resuming unless given again.",
+          "$ref": "run-state.schema.json#/$defs/retryPolicy"
+        },
         "resumeRunId": {
           "type": "string"
         },
@@ -505,6 +509,10 @@
         },
         "stateDir": {
           "type": "string"
+        },
+        "values": {
+          "description": "Also compare every migrated value, not only counts and keys. Reads all mapped data once more.",
+          "type": "boolean"
         }
       }
     },

@@ -58,6 +58,14 @@
           ],
           "mandatory": true
         }
+      ],
+      "indexes": [
+        {
+          "properties": [
+            "rtg_id"
+          ],
+          "unique": true
+        }
       ]
     },
     {
@@ -102,6 +110,14 @@
             }
           ],
           "mandatory": true
+        }
+      ],
+      "indexes": [
+        {
+          "properties": [
+            "rtg_id"
+          ],
+          "unique": true
         }
       ]
     },
@@ -158,6 +174,14 @@
           ],
           "mandatory": true
         }
+      ],
+      "indexes": [
+        {
+          "properties": [
+            "rtg_id"
+          ],
+          "unique": true
+        }
       ]
     },
     {
@@ -212,6 +236,14 @@
             }
           ],
           "mandatory": true
+        }
+      ],
+      "indexes": [
+        {
+          "properties": [
+            "rtg_id"
+          ],
+          "unique": true
         }
       ]
     }

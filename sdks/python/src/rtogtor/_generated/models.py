@@ -84,6 +84,10 @@ class EntityCheck(_Model):
     """Source records whose key has no destination record."""
     missing_keys: list[list[str]] = _Field(alias="missingKeys")
     """Up to 10 keys of missing rows, as canonical text in key order."""
+    value_mismatches: int | None = _Field(default=None, alias="valueMismatches")
+    """Present when values were compared (verify with values): records whose compared
+    values differ between source and destination.
+    """
 
 
 class ErrorInfo(_Model):
@@ -217,6 +221,17 @@ class Label(_Model):
     name: str = _Field(alias="name")
     properties: list[GraphProperty] = _Field(alias="properties")
     """Observed or declared properties, ordered by name."""
+    indexes: list[LabelIndexesItem] | None = _Field(default=None, alias="indexes")
+    """Range indexes on nodes with this label (including those backing uniqueness
+    constraints), ordered by property list. Absent when the inspector could not list
+    indexes.
+    """
+
+
+class LabelIndexesItem(_Model):
+    properties: list[str] = _Field(alias="properties")
+    """Indexed properties, in index order."""
+    unique: bool = _Field(alias="unique")
 
 
 class LossAllowance(_Model):
@@ -489,6 +504,8 @@ class Report(_Model):
     completed_at: str | None = _Field(default=None, alias="completedAt")
     attempts: int = _Field(alias="attempts")
     batch_size: int = _Field(alias="batchSize")
+    retry: RetryPolicy | None = _Field(default=None, alias="retry")
+    retries: int | None = _Field(default=None, alias="retries")
     source: RunStateEndpoint = _Field(alias="source")
     destination: RunStateEndpoint = _Field(alias="destination")
     steps: list[ReportStep] = _Field(alias="steps")
@@ -527,6 +544,18 @@ class ReportTotals(_Model):
     skipped: int = _Field(alias="skipped")
 
 
+class RetryPolicy(_Model):
+    """How transient errors (retryable error codes) are retried. Each attempt waits a
+    random time between half and all of the current backoff, which starts at
+    initialBackoffMs and doubles up to maxBackoffMs.
+    """
+
+    max_attempts: int = _Field(alias="maxAttempts")
+    """Attempts per operation, including the first. 1 disables retries."""
+    initial_backoff_ms: int = _Field(alias="initialBackoffMs")
+    max_backoff_ms: int = _Field(alias="maxBackoffMs")
+
+
 class RunState(_Model):
     """State of one migration run, stored as runs/<runId>/state.json in the state directory
     (default .rtogtor). Any engine or SDK can resume a run from this file together with
@@ -548,6 +577,14 @@ class RunState(_Model):
     """One entry per load step of the plan, in plan order."""
     attempts: int = _Field(alias="attempts")
     """Number of times the run was started or resumed."""
+    retry: RetryPolicy | None = _Field(default=None, alias="retry")
+    """The retry policy of the current attempt. Absent in state written before engine 0.1
+    Milestone 6.
+    """
+    retries: int | None = _Field(default=None, alias="retries")
+    """Retried operations over all attempts of the run (each retry of a failed operation
+    counts once).
+    """
     started_at: str = _Field(alias="startedAt")
     updated_at: str = _Field(alias="updatedAt")
     completed_at: str | None = _Field(default=None, alias="completedAt")
@@ -687,6 +724,7 @@ __all__ = [
     "KeyConstraint",
     "KeyValue",
     "Label",
+    "LabelIndexesItem",
     "LossAllowance",
     "MappingDocument",
     "MappingEndpoint",
@@ -713,6 +751,7 @@ __all__ = [
     "ReportFailures",
     "ReportStep",
     "ReportTotals",
+    "RetryPolicy",
     "RunState",
     "RunStateEndpoint",
     "RunStateMapping",
