@@ -3,6 +3,10 @@
 // `os`/`cpu`, so npm installs only the matching one through the main package's
 // optionalDependencies.
 //
+// The optionalDependencies are added to the main package only here, at pack time, with the
+// package's own version: the source package.json does not list them, so development installs
+// (npm ci) never depend on platform packages that are not published yet.
+//
 //   node scripts/pack.mjs            # every platform
 //   node scripts/pack.mjs win32-x64  # selected platforms (the main package is always packed)
 import { execFileSync } from "node:child_process";
@@ -86,5 +90,15 @@ for (const platform of selected) {
 }
 
 run(npm, ["run", "build"], here);
-run(npm, ["pack", "--pack-destination", out], here);
+const manifest = join(here, "package.json");
+const source = readFileSync(manifest, "utf8");
+const optionalDependencies = Object.fromEntries(
+  Object.keys(PLATFORMS).map((p) => [`@rtogtor/sdk-${p}`, pkg.version]),
+);
+writeFileSync(manifest, JSON.stringify({ ...pkg, optionalDependencies }, null, 2) + "\n");
+try {
+  run(npm, ["pack", "--pack-destination", out], here);
+} finally {
+  writeFileSync(manifest, source);
+}
 rmSync(staging, { recursive: true, force: true });

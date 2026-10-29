@@ -50,13 +50,6 @@
     "ajv": "^8.17.1",
     "yaml": "^2.8.0"
   },
-  "optionalDependencies": {
-    "@rtogtor/sdk-darwin-arm64": "1.0.0-dev.0",
-    "@rtogtor/sdk-darwin-x64": "1.0.0-dev.0",
-    "@rtogtor/sdk-linux-arm64": "1.0.0-dev.0",
-    "@rtogtor/sdk-linux-x64": "1.0.0-dev.0",
-    "@rtogtor/sdk-win32-x64": "1.0.0-dev.0"
-  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^22.20.5",
