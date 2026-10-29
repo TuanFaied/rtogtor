@@ -23,10 +23,10 @@ const BLACKHOLE = "postgres://u:p@10.255.255.1:5432/db?connect_timeout=60";
 
 describe("engine", () => {
   it("reports versions", () => {
-    expect(engine.info.specVersion).toBe("0.1.0");
+    expect(engine.info.specVersion).toBe("1.0.0");
     expect(engine.info.identityAlgorithm).toBe("rtg-id/v1");
     expect(engine.info.protocolVersion).toBe("1.0");
-    expect(engine.info.engineVersion).toMatch(/^0\.1\./);
+    expect(engine.info.engineVersion).toMatch(/^1\./);
   });
 
   it("returns errors with codes", async () => {

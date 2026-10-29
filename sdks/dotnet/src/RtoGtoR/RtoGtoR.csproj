@@ -6,7 +6,7 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
     <PackageId>RtoGtoR</PackageId>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>1.0.0</VersionPrefix> <!-- x-release-please-version -->
     <VersionSuffix>dev</VersionSuffix>
     <Authors>TuanFaied</Authors>
     <Description>RtoGtoR .NET SDK: bidirectional relational ↔ graph migration (PostgreSQL → Neo4j) with explicit mappings, plans, resumable runs and verification. Bundles the RtoGtoR engine for linux-x64, linux-arm64, osx-x64, osx-arm64 and win-x64.</Description>

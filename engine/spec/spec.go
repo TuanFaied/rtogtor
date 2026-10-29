@@ -16,7 +16,10 @@ import (
 //go:generate go run ./gen
 
 // Version is the specification version this engine implements.
-const Version = "0.1.0"
+const Version = "1.0.0"
+
+// Accepts describes the specVersions Supports accepts, for humans.
+const Accepts = "1.0.x, 0.1.x"
 
 // IdentityAlgorithm is the identity derivation implemented by this engine.
 const IdentityAlgorithm = "rtg-id/v1"
@@ -75,18 +78,18 @@ func MustFile(name string) []byte {
 }
 
 // Supports reports whether this engine can process documents declaring the
-// given specVersion. Before 1.0, a minor version change may be breaking, so
-// the major and minor versions must both match; patch versions are
-// compatible.
+// given specVersion (specs/compatibility.md): the same major version with a
+// minor version up to this engine's, or 0.1.x, the draft that became 1.0.0
+// without schema changes.
 func Supports(version string) bool {
 	maj, min, ok := majorMinor(version)
 	if !ok {
 		return false
 	}
-	wantMaj, wantMin, _ := majorMinor(Version)
-	if wantMaj == 0 {
-		return maj == wantMaj && min == wantMin
+	if maj == 0 && min == 1 {
+		return true
 	}
+	wantMaj, wantMin, _ := majorMinor(Version)
 	return maj == wantMaj && min <= wantMin
 }
 

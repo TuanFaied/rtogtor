@@ -3,23 +3,23 @@
 This directory is the **single source of truth** for every RtoGtoR component.
 The engine and all SDKs implement what is written here, and nothing more.
 
-- **Current spec version:** `0.1.0` (draft — may still change before release)
-- Versioned independently of the engine and SDKs (semver). While the major
-  version is `0`, a minor bump may be breaking.
+- **Current spec version:** `1.0.0`. Documents declaring `0.1.x` (the draft) remain valid; see [compatibility.md](compatibility.md).
+- Versioned independently of the engine and SDKs (semver): minor versions
+  only add; see [compatibility.md](compatibility.md).
 
 | Document | Status | Defines |
 |---|---|---|
-| [`values.md`](values.md) | Draft | Canonical value encoding and loss kinds |
-| [`identity.md`](identity.md) | Draft | Byte-exact `rtg_id` derivation (`rtg-id/v1`) |
-| [`error-codes.json`](error-codes.json) / [`.md`](error-codes.md) | Draft | Stable error codes |
-| [`mapping.schema.json`](mapping.schema.json) | Draft | Mapping definitions (both directions) |
-| [`schema-metadata.schema.json`](schema-metadata.schema.json) | Draft | Output of `rtogtor inspect` |
-| [`ir.schema.json`](ir.schema.json) | Early draft | Canonical intermediate representation |
-| [`compatibility.md`](compatibility.md) | Draft | Spec × engine × SDK version matrix |
-| [`plan.schema.json`](plan.schema.json) | Draft | Execution plan output |
-| [`report.schema.json`](report.schema.json) | Draft | Migration and verification reports |
-| [`run-state.schema.json`](run-state.schema.json) | Draft | Runs, checkpoints, failed records |
-| [`protocol.md`](protocol.md) / [`protocol.schema.json`](protocol.schema.json) | Draft (protocol 1.0) | Engine ↔ SDK messages |
+| [`values.md`](values.md) | Stable | Canonical value encoding and loss kinds |
+| [`identity.md`](identity.md) | Stable | Byte-exact `rtg_id` derivation (`rtg-id/v1`) |
+| [`error-codes.json`](error-codes.json) / [`.md`](error-codes.md) | Stable | Stable error codes |
+| [`mapping.schema.json`](mapping.schema.json) | Stable | Mapping definitions (both directions) |
+| [`schema-metadata.schema.json`](schema-metadata.schema.json) | Stable | Output of `rtogtor inspect` |
+| [`ir.schema.json`](ir.schema.json) | Informative | Canonical intermediate representation |
+| [`compatibility.md`](compatibility.md) | Stable | Spec × engine × SDK version matrix |
+| [`plan.schema.json`](plan.schema.json) | Stable | Execution plan output |
+| [`report.schema.json`](report.schema.json) | Stable | Migration and verification reports |
+| [`run-state.schema.json`](run-state.schema.json) | Stable | Runs, checkpoints, failed records |
+| [`protocol.md`](protocol.md) / [`protocol.schema.json`](protocol.schema.json) | Stable (protocol 1.0) | Engine ↔ SDK messages |
 
 Shared test data that every implementation must pass lives in
 [`../conformance/`](../conformance/).

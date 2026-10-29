@@ -91,7 +91,7 @@ public sealed class Connection
     /// Builds the protocol representation. Literal secrets are assigned to private environment
     /// variables in <paramref name="env"/>, which the caller passes to the engine process.
     /// </summary>
-    internal Model.Connection ToWire(IDictionary<string, string>? env)
+    internal Model.WireConnection ToWire(IDictionary<string, string>? env)
     {
         string Secret(string value)
         {
@@ -107,9 +107,9 @@ public sealed class Connection
 
         if (_urlEnv is not null || _url is not null)
         {
-            return new Model.Connection { Product = Product, UrlEnv = _urlEnv ?? Secret(_url!), Database = Database };
+            return new Model.WireConnection { Product = Product, UrlEnv = _urlEnv ?? Secret(_url!), Database = Database };
         }
-        return new Model.Connection
+        return new Model.WireConnection
         {
             Product = Product,
             Uri = _uri,

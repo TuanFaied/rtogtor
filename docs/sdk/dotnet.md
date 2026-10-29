@@ -50,7 +50,7 @@ Integration tests run when both variables are set. PostgreSQL must hold the
 e-commerce example in schema `public` (the Compose database does):
 
 ```bash
-export RTOGTOR_TEST_POSTGRES_URL="postgres://rtogtor:<password>@127.0.0.1:55432/ecommerce?sslmode=disable"
+export RTOGTOR_TEST_POSTGRES_URL="postgres://rtogtor:<password>@127.0.0.1:15432/ecommerce?sslmode=disable"
 export RTOGTOR_TEST_NEO4J_URL="neo4j://neo4j:<password>@127.0.0.1:7687"
 dotnet test --filter "FullyQualifiedName~IntegrationTests"
 ```

@@ -19,7 +19,10 @@ cp .env.example .env
 
 Edit `.env` and choose local-only passwords. `.env` is git-ignored; never
 commit it. If port 5432 is already used by a local PostgreSQL install, set
-`POSTGRES_PORT` (for example `55432`).
+`POSTGRES_PORT` (for example `15432`). On Windows, pick a port outside the
+ranges Hyper-V reserves (`netsh interface ipv4 show excludedportrange
+protocol=tcp`); they change between restarts and include parts of the
+49152–65535 range.
 
 ```bash
 docker compose up -d --wait

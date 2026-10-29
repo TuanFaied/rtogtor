@@ -1,6 +1,6 @@
 # RtoGtoR mapping: e-commerce PostgreSQL -> Neo4j
 # Validate with: rtogtor validate --mapping examples/ecommerce/mapping.yaml
-specVersion: "0.1.0"
+specVersion: "1.0.0"
 name: ecommerce
 description: Customers, products, orders and order lines as a property graph.
 direction: relational-to-graph

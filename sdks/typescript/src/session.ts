@@ -7,14 +7,14 @@ import { RtoGtoRError } from "./errors.js";
 import { locateEngine } from "./locate.js";
 
 export const PROTOCOL_VERSION = "1.0";
-export const SUPPORTED_ENGINE_RANGE = ">= 0.1.0-0, < 0.2.0";
-export const SDK_VERSION = "0.1.0-dev.0";
+export const SUPPORTED_ENGINE_RANGE = ">= 1.0.0-0, < 2.0.0";
+export const SDK_VERSION = "1.0.0-dev.0"; // x-release-please-version
 
 /** Engine versions this SDK supports; before 1.0 a minor version may break compatibility. */
 export function isSupportedEngine(version: string): boolean {
   const core = (version.split(/[-+]/)[0] ?? "").split(".");
   if (core.length !== 3 || !core.every((p) => /^\d+$/.test(p))) return false;
-  return core[0] === "0" && core[1] === "1";
+  return core[0] === "1";
 }
 
 /** Options for starting the engine. */

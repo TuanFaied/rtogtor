@@ -1,0 +1,52 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "include-component-in-tag": true,
+  "include-v-in-tag": true,
+  "tag-separator": "/",
+  "separate-pull-requests": false,
+  "group-pull-request-title-pattern": "chore: release ${branch}",
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug fixes" },
+    { "type": "perf", "section": "Performance" },
+    { "type": "security", "section": "Security" },
+    { "type": "docs", "section": "Documentation", "hidden": true },
+    { "type": "chore", "section": "Miscellaneous", "hidden": true }
+  ],
+  "packages": {
+    "engine": {
+      "release-type": "go",
+      "component": "engine",
+      "package-name": "github.com/TuanFaied/rtogtor/engine",
+      "release-as": "1.0.0",
+      "extra-files": ["rtogtor.go"]
+    },
+    "sdks/dotnet": {
+      "release-type": "simple",
+      "component": "sdk-dotnet",
+      "package-name": "RtoGtoR",
+      "release-as": "1.0.0",
+      "extra-files": ["src/RtoGtoR/RtoGtoR.csproj"]
+    },
+    "sdks/python": {
+      "release-type": "python",
+      "component": "sdk-python",
+      "package-name": "rtogtor",
+      "release-as": "1.0.0"
+    },
+    "sdks/typescript": {
+      "release-type": "node",
+      "component": "sdk-typescript",
+      "package-name": "@rtogtor/sdk",
+      "release-as": "1.0.0",
+      "extra-files": [
+        "src/session.ts",
+        { "type": "json", "path": "package.json", "jsonpath": "$.optionalDependencies['@rtogtor/sdk-darwin-arm64']" },
+        { "type": "json", "path": "package.json", "jsonpath": "$.optionalDependencies['@rtogtor/sdk-darwin-x64']" },
+        { "type": "json", "path": "package.json", "jsonpath": "$.optionalDependencies['@rtogtor/sdk-linux-arm64']" },
+        { "type": "json", "path": "package.json", "jsonpath": "$.optionalDependencies['@rtogtor/sdk-linux-x64']" },
+        { "type": "json", "path": "package.json", "jsonpath": "$.optionalDependencies['@rtogtor/sdk-win32-x64']" }
+      ]
+    }
+  }
+}

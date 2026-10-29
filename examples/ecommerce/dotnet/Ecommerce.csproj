@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- RtoGtoR e-commerce round trip (PostgreSQL -> Neo4j -> PostgreSQL) with the .NET SDK. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Builds against the SDK in this repository. Outside it, use
+         <PackageReference Include="RtoGtoR" Version="1.0.*" /> instead. -->
+    <ProjectReference Include="..\..\..\sdks\dotnet\src\RtoGtoR\RtoGtoR.csproj" />
+  </ItemGroup>
+
+</Project>

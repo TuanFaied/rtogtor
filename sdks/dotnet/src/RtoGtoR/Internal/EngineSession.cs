@@ -114,7 +114,7 @@ internal sealed class EngineSession : IAsyncDisposable
         typeof(EngineSession).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
 
     /// <summary>Engine versions this SDK supports. Before 1.0, minor versions may break compatibility.</summary>
-    public const string SupportedEngineRange = ">= 0.1.0-0, < 0.2.0";
+    public const string SupportedEngineRange = ">= 1.0.0-0, < 2.0.0";
 
     internal static bool IsSupportedEngine(string version)
     {
@@ -123,7 +123,7 @@ internal sealed class EngineSession : IAsyncDisposable
             && int.TryParse(core[0], NumberStyles.None, CultureInfo.InvariantCulture, out var major)
             && int.TryParse(core[1], NumberStyles.None, CultureInfo.InvariantCulture, out var minor)
             && int.TryParse(core[2], NumberStyles.None, CultureInfo.InvariantCulture, out _)
-            && major == 0 && minor == 1;
+            && major == 1 && minor >= 0;
     }
 
     /// <summary>Sends a request and returns its result, or throws the engine's error.</summary>

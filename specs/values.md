@@ -1,6 +1,6 @@
 # Canonical value encoding
 
-- **Spec version:** 0.1.0 (draft)
+- **Spec version:** 1.0.0
 - **Status:** Normative unless a section is marked *informative*
 
 Languages and databases disagree about numeric and temporal precision. This is

@@ -16,7 +16,8 @@ namespace RtoGtoR;
 /// </summary>
 public sealed partial class Mapping
 {
-    private const string SupportedSpecMajorMinor = "0.1.";
+    // specVersion 1.0.x, or 0.1.x: the draft that became 1.0.0 without schema changes.
+    private static readonly string[] SupportedSpecPrefixes = ["1.0.", "0.1."];
 
     private Mapping(JsonElement json)
     {
@@ -108,9 +109,9 @@ public sealed partial class Mapping
     {
         // Check the version first: other versions have other schemas.
         if (json.ValueKind == JsonValueKind.Object && json.TryGetProperty("specVersion", out var v) &&
-            v.ValueKind == JsonValueKind.String && !v.GetString()!.StartsWith(SupportedSpecMajorMinor, StringComparison.Ordinal))
+            v.ValueKind == JsonValueKind.String && !SupportedSpecPrefixes.Any(p => v.GetString()!.StartsWith(p, StringComparison.Ordinal)))
         {
-            throw new RtoGtoRException(ErrorCodes.Spec001, $"mapping declares specVersion {v.GetString()}; this SDK supports 0.1.x", "/specVersion");
+            throw new RtoGtoRException(ErrorCodes.Spec001, $"mapping declares specVersion {v.GetString()}; this SDK supports 1.0.x (and 0.1.x)", "/specVersion");
         }
         var problems = SpecSchemas.Validate("mapping.schema.json", json, ErrorCodes.Map001);
         if (problems.Count > 0)

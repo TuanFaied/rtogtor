@@ -43,6 +43,7 @@ public class OfflineTests
     [Theory]
     [InlineData("specVersion: \"0.1.0\"", "specVersion: 0.1", ErrorCodes.Map001, "/specVersion")] // a number, as in the engine
     [InlineData("specVersion: \"0.1.0\"", "specVersion: \"0.2.0\"", ErrorCodes.Spec001, "/specVersion")]
+    [InlineData("specVersion: \"0.1.0\"", "specVersion: \"1.1.0\"", ErrorCodes.Spec001, "/specVersion")]
     [InlineData("type: int64 }", "type: integer }", ErrorCodes.Map001, "/entities/0/properties/0/type")]
     [InlineData("name: test", "name: test\nname: again", ErrorCodes.Map002, null)]
     public void Invalid_yaml_is_rejected_with_codes(string from, string to, string code, string? path)
@@ -55,6 +56,14 @@ public class OfflineTests
             Assert.Contains(e.Diagnostics.Select(d => d.Path).Append(e.Path), p => p == path);
         }
     }
+
+    [Theory]
+    [InlineData("0.1.0")]
+    [InlineData("0.1.9")]
+    [InlineData("1.0.0")]
+    [InlineData("1.0.3")]
+    public void Supported_spec_versions_are_accepted(string version) =>
+        Assert.Equal(version, Mapping.FromYaml(Minimal.Replace("specVersion: \"0.1.0\"", $"specVersion: \"{version}\"", StringComparison.Ordinal)).Document.SpecVersion);
 
     [Fact]
     public void Json_duplicate_keys_are_rejected()
@@ -126,10 +135,11 @@ public class OfflineTests
     }
 
     [Theory]
-    [InlineData("0.1.0-dev", true)]
-    [InlineData("0.1.7", true)]
-    [InlineData("0.2.0", false)]
-    [InlineData("1.1.0", false)]
+    [InlineData("1.0.0-dev", true)]
+    [InlineData("1.0.0", true)]
+    [InlineData("1.7.2", true)]
+    [InlineData("0.1.0", false)]
+    [InlineData("2.0.0", false)]
     [InlineData("garbage", false)]
     public void Engine_version_range(string version, bool supported) =>
         Assert.Equal(supported, Internal.EngineSession.IsSupportedEngine(version));

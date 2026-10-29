@@ -43,6 +43,7 @@ describe("mapping", () => {
   it.each([
     ['specVersion: "0.1.0"', "specVersion: 0.1", ErrorCodes.Map001, "/specVersion"],
     ['specVersion: "0.1.0"', 'specVersion: "0.2.0"', ErrorCodes.Spec001, "/specVersion"],
+    ['specVersion: "0.1.0"', 'specVersion: "1.1.0"', ErrorCodes.Spec001, "/specVersion"],
     ["type: int64 }", "type: integer }", ErrorCodes.Map001, "/entities/0/properties/0/type"],
     ["name: test", "name: test\nname: again", ErrorCodes.Map002, undefined],
   ])("rejects %s -> %s with %s", (from, to, code, path) => {
@@ -50,6 +51,12 @@ describe("mapping", () => {
     expect(e.code).toBe(code);
     expect(e.severity).toBe("error");
     if (path !== undefined) expect([...e.diagnostics.map((d) => d.path), e.path]).toContain(path);
+  });
+
+  it.each(["0.1.0", "0.1.9", "1.0.0", "1.0.3"])("accepts specVersion %s", (v) => {
+    expect(
+      Mapping.fromYaml(MINIMAL.replace('specVersion: "0.1.0"', `specVersion: "${v}"`)).document.specVersion,
+    ).toBe(v);
   });
 
   it("follows YAML 1.2, not 1.1", () => {
@@ -113,10 +120,11 @@ describe("connections", () => {
 
 describe("engine discovery", () => {
   it.each([
-    ["0.1.0-dev", true],
-    ["0.1.7", true],
-    ["0.2.0", false],
-    ["1.1.0", false],
+    ["1.0.0-dev", true],
+    ["1.0.0", true],
+    ["1.7.2", true],
+    ["0.1.0", false],
+    ["2.0.0", false],
     ["garbage", false],
   ])("supports engine %s: %s", (v, ok) => {
     expect(isSupportedEngine(v)).toBe(ok);

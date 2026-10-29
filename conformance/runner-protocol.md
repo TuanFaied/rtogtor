@@ -29,9 +29,9 @@ writes a JSON document to that path:
 {
   "runnerProtocol": "1",
   "sdk": "dotnet",
-  "sdkVersion": "0.1.0",
-  "engineVersion": "0.1.0-dev",
-  "specVersion": "0.1.0",
+  "sdkVersion": "1.0.0",
+  "engineVersion": "1.0.0",
+  "specVersion": "1.0.0",
   "results": [
     {"case": "cases/ecommerce/plan", "status": "passed", "detail": null}
   ]

@@ -1,0 +1,6 @@
+{
+  "engine": "0.1.0",
+  "sdks/dotnet": "0.1.0",
+  "sdks/python": "0.1.0",
+  "sdks/typescript": "0.1.0"
+}

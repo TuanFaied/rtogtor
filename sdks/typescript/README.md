@@ -1,10 +1,13 @@
 # @rtogtor/sdk
 
-Migrate data from **PostgreSQL to Neo4j** with explicit mappings, plans you
-can inspect before writing, resumable runs and verification.
+Migrate data between **PostgreSQL and Neo4j**, in either direction, with
+explicit mappings, plans you can inspect before writing, resumable runs and
+value-level verification.
 
-> **Status: pre-alpha.** PostgreSQL → Neo4j only. See the
-> [roadmap](https://github.com/TuanFaied/rtogtor/blob/main/docs/roadmap.md).
+Version 1.0. The mapping's `direction` decides the way:
+`relational-to-graph` reads PostgreSQL and writes Neo4j, `graph-to-relational`
+reads Neo4j and writes PostgreSQL. See the
+[compatibility matrix](https://github.com/TuanFaied/rtogtor/blob/main/specs/compatibility.md).
 
 The SDK runs the RtoGtoR engine as a child process. npm installs the engine
 for your platform automatically (`@rtogtor/sdk-<os>-<cpu>`). All migration
@@ -34,8 +37,11 @@ await using m = new Migration({
 });
 const plan = await m.plan(); // nothing is written
 const report = await m.run({ dryRun: false, onProgress: (p) => console.log(p.stepId, p.written) });
-const verification = await m.verify(report.runId);
+const verification = await m.verify(report.runId, { values: true }); // every value, both sides
 ```
+
+A complete program, migrating the example both ways:
+[examples/ecommerce/typescript](https://github.com/TuanFaied/rtogtor/blob/main/examples/ecommerce/typescript/main.ts).
 
 - **Credentials** come from environment variables: `SOURCE_URL`, plus
   `NEO4J_USER` and `NEO4J_PASSWORD` for `authEnv: "NEO4J"`. They are never
@@ -47,6 +53,8 @@ const verification = await m.verify(report.runId);
   request. For a run, the rejection's `cause` is the engine's `RtoGtoRError`,
   whose `report.runId` you can pass as `resumeRunId`. Committed batches are not
   repeated, and nothing is duplicated.
+- **Retries:** transient errors are retried per `retry: { maxAttempts, initialBackoffMs, maxBackoffMs }`
+  (default 3 attempts, 200 ms to 5 s backoff).
 - **Numbers:** schema integers (counts) are `number`; they stay far below
   2^53. Value-level `int64` and `decimal` values are strings, exactly as in
   the specification. Convert with `BigInt(value)` when you need arithmetic.

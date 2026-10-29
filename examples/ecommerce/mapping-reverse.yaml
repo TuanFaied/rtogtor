@@ -2,7 +2,7 @@
 # The reverse of mapping.yaml: the same entities and relationships, read from
 # the graph that mapping.yaml produces and written back to tables.
 # Validate with: rtogtor validate --mapping examples/ecommerce/mapping-reverse.yaml
-specVersion: "0.1.0"
+specVersion: "1.0.0"
 name: ecommerce-reverse
 description: Customers, products, orders and order lines from a property graph back to tables.
 direction: graph-to-relational

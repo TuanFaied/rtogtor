@@ -26,7 +26,7 @@ func TestVersionJSON(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &v); err != nil {
 		t.Fatalf("invalid JSON %q: %v", out, err)
 	}
-	if v.SpecVersion != "0.1.0" || v.IdentityAlgorithm != "rtg-id/v1" || v.ProtocolVersions == nil {
+	if v.SpecVersion != "1.0.0" || v.IdentityAlgorithm != "rtg-id/v1" || v.ProtocolVersions == nil {
 		t.Errorf("unexpected version info: %+v", v)
 	}
 }
@@ -177,5 +177,37 @@ func TestConnectionFailuresNeverPrintCredentials(t *testing.T) {
 				t.Errorf("%v leaks %q: %q %q", args, secret, out, errOut)
 			}
 		}
+	}
+}
+
+func TestScaffoldReverse(t *testing.T) {
+	example := testutil.RepoPath(t, "examples", "ecommerce", "mapping.yaml")
+	code, out, errOut := run("scaffold", "--reverse", example)
+	if code != ExitOK || !strings.Contains(out, "direction: graph-to-relational") || !strings.Contains(out, "createTables: true") {
+		t.Fatalf("exit %d\n%s\n%s", code, out, errOut)
+	}
+
+	// --output refuses to overwrite without --force, and the file validates.
+	dst := filepath.Join(t.TempDir(), "reverse.yaml")
+	if code, _, errOut := run("scaffold", "--reverse", example, "-o", dst); code != ExitOK || !strings.Contains(errOut, "wrote "+dst) {
+		t.Fatalf("exit %d: %s", code, errOut)
+	}
+	if code, _, errOut := run("scaffold", "--reverse", example, "-o", dst); code != ExitUsage || !strings.Contains(errOut, "--force") {
+		t.Errorf("overwrite without --force: exit %d: %s", code, errOut)
+	}
+	if code, _, _ := run("scaffold", "--reverse", example, "-o", dst, "--force"); code != ExitOK {
+		t.Errorf("--force: exit %d", code)
+	}
+	if code, out, _ := run("validate", "--mapping", dst); code != ExitOK {
+		t.Errorf("scaffolded mapping does not validate: %s", out)
+	}
+
+	for _, args := range [][]string{{"scaffold"}, {"scaffold", "--reverse", example, "--source-env", "X"}} {
+		if code, _, _ := run(args...); code != ExitUsage {
+			t.Errorf("%v: exit %d, want usage", args, code)
+		}
+	}
+	if code, _, errOut := run("scaffold", "--reverse", dst); code != ExitFailure || !strings.Contains(errOut, "only relational-to-graph") {
+		t.Errorf("reversing a reverse mapping: exit %d: %s", code, errOut)
 	}
 }

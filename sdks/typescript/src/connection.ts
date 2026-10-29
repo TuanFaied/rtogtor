@@ -1,4 +1,4 @@
-import type { Connection as WireConnection } from "./generated/model.js";
+import type { WireConnection } from "./generated/model.js";
 
 /** Options for {@link Connection.postgresql}. Pass exactly one. */
 export interface PostgresqlOptions {

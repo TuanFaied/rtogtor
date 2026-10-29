@@ -15,7 +15,9 @@
 //	plan, err := mig.Plan(ctx)
 //	report, err := mig.Run(ctx, rtogtor.RunOptions{})
 //
-// STATUS: pre-alpha; PostgreSQL → Neo4j only.
+// Both directions are supported: PostgreSQL → Neo4j and Neo4j → PostgreSQL;
+// the mapping's direction decides. See examples/ecommerce/go for a full round
+// trip.
 package rtogtor
 
 import (
@@ -25,7 +27,7 @@ import (
 )
 
 // EngineVersion is the engine's semantic version.
-const EngineVersion = "0.1.0-dev"
+const EngineVersion = "1.0.0-dev" // x-release-please-version
 
 // SpecVersion is the specification version the engine implements.
 const SpecVersion = spec.Version

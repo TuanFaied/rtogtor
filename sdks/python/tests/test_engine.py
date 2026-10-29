@@ -14,10 +14,10 @@ from rtogtor import AsyncMigration, Connection, Engine, ErrorCode, Mapping, RtoG
 
 
 def test_handshake_reports_versions(engine: Engine) -> None:
-    assert engine.info.spec_version == "0.1.0"
+    assert engine.info.spec_version == "1.0.0"
     assert engine.info.identity_algorithm == "rtg-id/v1"
     assert engine.info.protocol_version == "1.0"
-    assert engine.info.engine_version.startswith("0.1.")
+    assert engine.info.engine_version.startswith("1.")
 
 
 def test_engine_errors_carry_codes(engine: Engine) -> None:

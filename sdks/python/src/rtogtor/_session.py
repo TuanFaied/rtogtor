@@ -21,7 +21,7 @@ from ._generated.error_codes import ErrorCode
 from .errors import RtoGtoRError
 
 PROTOCOL_VERSION = "1.0"
-SUPPORTED_ENGINE_RANGE = ">= 0.1.0-0, < 0.2.0"
+SUPPORTED_ENGINE_RANGE = ">= 1.0.0-0, < 2.0.0"
 ENGINE_PATH_VARIABLE = "RTOGTOR_ENGINE_PATH"
 
 
@@ -35,11 +35,11 @@ def sdk_version() -> str:
 
 
 def is_supported_engine(version: str) -> bool:
-    """Engine versions this SDK supports; before 1.0 a minor version may break compatibility."""
+    """Engine versions this SDK supports: any 1.x (specs/compatibility.md)."""
     core = version.split("-")[0].split("+")[0].split(".")
     if len(core) != 3 or not all(p.isdigit() for p in core):
         return False
-    return int(core[0]) == 0 and int(core[1]) == 1
+    return int(core[0]) == 1
 
 
 def locate_engine(explicit: str | None = None) -> str:

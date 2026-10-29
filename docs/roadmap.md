@@ -82,10 +82,15 @@ database, the identity and value vectors pass, and CI is green.
 | Fuzz targets for every untrusted input, in CI | ✅ no findings |
 | Security review and dependency scans in all four ecosystems ([security](security.md)) | ✅ |
 
-## Milestone 7 — Public release 1.0
+## Milestone 7 — Public release 1.0 *(implemented on branch `milestone-7/release-1.0`; publishing pending)*
 
-CLI polish, docs and examples in all four languages, release automation,
-compatibility matrix.
+| Item | Status |
+|---|---|
+| Specification 1.0.0, still accepting 0.1.x documents; SDK engine ranges `>= 1.0.0-0, < 2.0.0` | ✅ |
+| Compatibility matrix ([specs/compatibility.md](../specs/compatibility.md)) | ✅ |
+| CLI polish: `rtogtor scaffold` (draft or reverse a mapping), rewritten help, `version` shows accepted spec versions | ✅ |
+| The e-commerce round trip in Go, C#, Python and TypeScript, run in CI ([examples](../examples/ecommerce/README.md)) | ✅ |
+| Release automation: release-please, signed provenance, SBOM, trusted publishing to NuGet, PyPI and npm ([releasing](releasing.md)) | ✅ prepared; first publish needs the one-time setup |
 
 ## Later
 

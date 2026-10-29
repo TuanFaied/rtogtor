@@ -36,17 +36,6 @@ class Column(_Model):
     type_info: TypeInfo = _Field(alias="typeInfo")
 
 
-class Connection(_Model):
-    product: str = _Field(alias="product")
-    url_env: str | None = _Field(default=None, alias="urlEnv")
-    """Variable holding the full URL, which may include credentials."""
-    uri: str | None = _Field(default=None, alias="uri")
-    """URL without credentials (no user:password)."""
-    user_env: str | None = _Field(default=None, alias="userEnv")
-    password_env: str | None = _Field(default=None, alias="passwordEnv")
-    database: str | None = _Field(default=None, alias="database")
-
-
 class EndpointRef(_Model):
     entity: str = _Field(alias="entity")
     columns: list[str] = _Field(alias="columns")
@@ -701,11 +690,21 @@ class Verification(_Model):
     issues: list[PlanDiagnostic] = _Field(alias="issues")
 
 
+class WireConnection(_Model):
+    product: str = _Field(alias="product")
+    url_env: str | None = _Field(default=None, alias="urlEnv")
+    """Variable holding the full URL, which may include credentials."""
+    uri: str | None = _Field(default=None, alias="uri")
+    """URL without credentials (no user:password)."""
+    user_env: str | None = _Field(default=None, alias="userEnv")
+    password_env: str | None = _Field(default=None, alias="passwordEnv")
+    database: str | None = _Field(default=None, alias="database")
+
+
 __all__ = [
     "CanonicalizeResult",
     "CodeCount",
     "Column",
-    "Connection",
     "EndpointRef",
     "Entity",
     "EntityCheck",
@@ -763,6 +762,7 @@ __all__ = [
     "TypeInfo",
     "ValidateMappingResult",
     "Verification",
+    "WireConnection",
 ]
 
 for _model in list(globals().values()):
