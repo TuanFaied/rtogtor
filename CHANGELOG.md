@@ -5,6 +5,13 @@ grouped by component.
 
 ## Unreleased
 
+### Fixes
+
+- TypeScript SDK: the `npx rtogtor` entry point (`sdks/typescript/bin/rtogtor.js`)
+  was excluded by the repository's `.gitignore`, so packages built from a
+  clean checkout had no CLI. It is now tracked, and the packaging smoke test
+  checks it.
+
 ### Milestone 7 (branch `milestone-7/release-1.0`)
 
 - Specification 1.0.0. Engines and SDKs accept documents declaring 1.0.x and

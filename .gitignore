@@ -31,6 +31,8 @@ node_modules/
 
 # .NET
 [Bb]in/
+# ...but not the TypeScript SDK's CLI entry point (`npx rtogtor`).
+!sdks/typescript/bin/
 [Oo]bj/
 *.user
 .vs/
