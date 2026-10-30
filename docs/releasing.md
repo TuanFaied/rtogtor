@@ -56,8 +56,14 @@ Do these before merging the first release pull request:
 3. **Trusted publishers**, each bound to this repository, workflow
    `release.yml` and environment `release`:
    - PyPI: add a pending trusted publisher for project `rtogtor`.
-   - npm: configure trusted publishing for `@rtogtor/sdk` and each platform
-     package (or publish 1.0.0 once by hand, then configure).
+   - npm: trusted publishing can only be configured for packages that
+     already exist, so the first release is published with a token: create a
+     granular access token with read and write access to the `@rtogtor`
+     scope, add it as the repository secret `NPM_TOKEN`, and run the
+     **npm publish (manual)** workflow (`npm-publish.yml`) for the tag. Then
+     configure trusted publishing (repository `TuanFaied/rtogtor`, workflow
+     `release.yml`, environment `release`) for `@rtogtor/sdk` and the five
+     `@rtogtor/sdk-<platform>` packages, and delete the secret and the token.
    - nuget.org: add a trusted publishing policy, and set the repository
      variable `NUGET_USER` to the nuget.org account name.
 4. **Allow release-please to open pull requests**: Settings → Actions →
