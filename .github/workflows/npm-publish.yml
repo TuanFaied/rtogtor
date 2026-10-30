@@ -1,0 +1,87 @@
+name: npm publish (manual)
+
+# Publishes an already-tagged TypeScript SDK release to npm with a token.
+#
+# npm can only configure trusted publishing (OIDC) for packages that already
+# exist, so the first release of @rtogtor/sdk and its five platform packages
+# cannot use it: release.yml's npm job fails with E404. Run this workflow once
+# for that release (docs/releasing.md), then configure trusted publishing on
+# npm for all six packages and delete the NPM_TOKEN secret.
+#
+# It can also re-publish a release whose npm job failed for another reason.
+# Versions that are already on npm are skipped.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish
+        required: true
+        default: sdk-typescript/v1.0.0
+
+permissions:
+  contents: read
+
+jobs:
+  npm:
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    defaults:
+      run:
+        working-directory: sdks/typescript
+    steps:
+      - name: Check the tag
+        working-directory: .
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          case "$TAG" in
+            sdk-typescript/v[0-9]*) ;;
+            *) echo "::error::$TAG is not a sdk-typescript/vX.Y.Z tag"; exit 1 ;;
+          esac
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: engine/go.mod
+          cache-dependency-path: engine/go.sum
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@11
+      - run: npm ci
+      - name: Pack @rtogtor/sdk and the five platform packages
+        run: |
+          node scripts/pack.mjs
+          test "$(ls ../../dist/npm/*.tgz | wc -l)" -eq 6
+      - name: Smoke test the installed packages
+        run: node scripts/smoke.mjs
+      - uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: dist/npm/*.tgz
+      - name: Publish (platform packages first, so optional dependencies resolve)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          test -n "$NODE_AUTH_TOKEN" || { echo "::error::Add the NPM_TOKEN secret first (docs/releasing.md)"; exit 1; }
+          publish() {
+            name=$(tar -xzOf "$1" package/package.json | node -p 'const p = JSON.parse(require("fs").readFileSync(0, "utf8")); p.name + "@" + p.version')
+            if npm view "$name" version >/dev/null 2>&1; then
+              echo "$name is already published; skipping"
+            else
+              npm publish "$1" --access public --provenance
+            fi
+          }
+          for p in ../../dist/npm/rtogtor-sdk-*-*.tgz; do publish "$p"; done
+          publish ../../dist/npm/rtogtor-sdk-[0-9]*.tgz
+      - name: Attach to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: gh release upload "$TAG" ../../dist/npm/*.tgz --clobber
