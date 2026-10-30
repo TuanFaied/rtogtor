@@ -8,7 +8,7 @@ import { locateEngine } from "./locate.js";
 
 export const PROTOCOL_VERSION = "1.0";
 export const SUPPORTED_ENGINE_RANGE = ">= 1.0.0-0, < 2.0.0";
-export const SDK_VERSION = "1.0.0-dev.0"; // x-release-please-version
+export const SDK_VERSION = "1.0.0"; // x-release-please-version
 
 /** Engine versions this SDK supports; before 1.0 a minor version may break compatibility. */
 export function isSupportedEngine(version: string): boolean {

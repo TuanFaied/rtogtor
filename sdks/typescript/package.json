@@ -1,6 +1,6 @@
 {
   "name": "@rtogtor/sdk",
-  "version": "1.0.0-dev.0",
+  "version": "1.0.0",
   "description": "Relational ↔ graph migration (PostgreSQL → Neo4j) with explicit mappings, plans, resumable runs and verification.",
   "license": "Apache-2.0",
   "author": "TuanFaied",

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rtogtor"
-version = "1.0.0.dev0"
+version = "1.0.0"
 description = "Relational ↔ graph migration (PostgreSQL → Neo4j) with explicit mappings, plans, resumable runs and verification."
 readme = "README.md"
 license = "Apache-2.0"
