@@ -3,3 +3,5 @@ node_modules/
 src/generated/
 engine-bin/
 package-lock.json
+# Written by release-please on every release.
+CHANGELOG.md
