@@ -27,7 +27,7 @@ import (
 )
 
 // EngineVersion is the engine's semantic version.
-const EngineVersion = "1.0.0-dev" // x-release-please-version
+const EngineVersion = "1.0.0" // x-release-please-version
 
 // SpecVersion is the specification version the engine implements.
 const SpecVersion = spec.Version
